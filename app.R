@@ -24,7 +24,7 @@ library(DBI)
 library(RSQLite)
 library(sodium)
 library(kableExtra)
-
+library(stringr)
 
 # Simulación de una base de datos de usuarios
 if (file.exists("base_usuarios")) {
@@ -104,11 +104,13 @@ ui <- fluidPage(
   div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
 
   
-  titlePanel("Plataforma de Recomendación Nutricional para Cultivos Extensivos."),
+  titlePanel("Plataforma de Recomendación Nutricional para Cultivos Extensivos"),
   
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
     tags$style(HTML("
+    
+    
     body {
         background-image: url('imagen2.jpg'); /* Ruta relativa a la carpeta www */
         background-size: cover; /* Ajusta la imagen al tamaño de la pantalla */
@@ -211,13 +213,39 @@ ui <- fluidPage(
              br(),
              div(
                style = "text-align: center;",
-               tags$img(src = "imagen1.jpg", width = "50%", alt = "integrantes")
+               tags$img(src = "Imagen1.jpg", width = "50%", alt = "integrantes")
+             ),
+             br(),
+             h6(HTML("Desarrollada por <a href='https://github.com/Nuria1982' target='_blank'>Nuria Lewczuk</a>
+                      <br>Chang et al. (2021). <em>shiny: Web Application Framework for R</em>. R package version 1.7.1, 
+                      <a href='https://cran.r-project.org/web/packages/shiny/index.html' 
+                      target='_blank'>https://CRAN.R-project.org/package=shiny</a>,
+                      <br>Sievert C, Iannone R, Allaire J, Borges B (2023). <em>Flexdashboard: R Markdown Format for Flexible 
+                     Dashboards</em>. R package version 0.6.1.9000, <a href='https://pkgs.rstudio.com/flexdashboard/', 
+                     target='_blank'>https://pkgs.rstudio.com/flexdashboard/</a>"))
+    ),
+    
+    tabPanel("Carga de datos",
+             br(),
+             div(style = "background-color: #E0E1DD80; padding: 10px; border-radius: 10px;",
+                 h5("Por favor descargue la tabla y complete con los datos solicitados"),
+                 downloadButton("descarga_modelo", "Descargar Modelo de Tabla"),
+                 br(),
+                 br(),
+                 h5("Cargue la tabla completa:"),
+                 fileInput("archivo_usuario", "Subir archivo de datos",
+                           accept = c(".csv", ".xlsx")
+                 ),
+                 br(),
+                 fluidRow(  
+                   column(4, uiOutput("zonas_maiz"))
+                 )
              )
     ),
     
     tabPanel("Nitrógeno",
-             br(),
-             h4(HTML("Definición dosos de nitrógeno")),
+             
+             h4(HTML("Definición dosis de nitrógeno")),
              
              # Subpestañas dentro de Nitrógeno
              tabsetPanel(
@@ -285,15 +313,20 @@ ui <- fluidPage(
                                        column(4,
                                               conditionalPanel(
                                                 condition = "input.cultivo == 'Trigo'",  
-                                                selectInput("antecesor", "Efecto Antecesor", 
+                                                selectInput("antecesor", strong(HTML("Efecto Antecesor (kg N / ha)")), 
                                                             choices = c("Soja", "Maiz", "Otros")),
                                                 conditionalPanel(
                                                   condition = "input.antecesor == 'Otros'",  
                                                   numericInput("valor_otros", "Ingrese el valor", value = 0)
                                                 )
+                                              ),
+                                              conditionalPanel(
+                                                condition = "input.cultivo != 'Trigo'",
+                                                numericInput("valor_no_trigo", strong(HTML("Ingrese un valor para el efecto del antecesor (kg N / ha)")), value = 0)
                                               )
                                        )
-                                       ),
+                                     
+                                 ),
                                      hr(),
                                      fluidRow(
                                        column(4, 
@@ -324,56 +357,40 @@ ui <- fluidPage(
                br(),
                br(),
                fluidRow(
-                 column(9, offset = 1,  
-                        div(style = "display: flex; justify-content: space-between; align-items: center;",
-                            div(style = "flex: 1; padding-right: 20px; padding-right: 10px;",
+                 column(11,  offset = 1,
+                        div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
+                            div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
                                 uiOutput("demandaN")
                             ),
-                            div(style = "flex: 1; padding-right: 20px; padding-right: 10px;",
+                            div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
                                 uiOutput("ofertaN")
                             ),
-                            div(class = "gauge-title", "Dosis de N (kg N / ha)",
+                            div(style = "flex: 1; padding-bottom: 10px;", 
+                                class = "gauge-title", 
+                                "Dosis de N (kg N / ha)",
                                 flexdashboard::gaugeOutput("dosis_nitrogeno", width = "100%", height = "100px")
-                                
                             )
                         )
                  )
-                 
                )
              ),
                
                tabPanel("Múltiple lotes",
-                        br(),
-                        h3(strong("Para calcular la dosis recomendada de nitrógeno para cada lote, ")),
-                        br(),
-                        
-                        div(style = "background-color: #E0E1DD80; padding: 10px; border-radius: 10px;",
-                            h5("Puede descargar una tabla modelo y completar los datos solicitadios para los cálculos"),
-                            downloadButton("descarga_modelo_nitrogeno", "Descargar Modelo de Tabla"),
-                            br(),
-                            br(),
-                            h5("Cargue la tabla con los datos solicitados:"),
-                            fileInput("archivo_usuario", "Subir archivo de datos",
-                                      accept = c(".csv", ".xlsx")
-                            ),
-                            br(),
-                            fluidRow(  
-                              column(4, uiOutput("zonas_maiz")),
-                              column(4, uiOutput("proteina_trigo"))  
-                            )
-                        ),
+                        h3(strong("Cálculo de la dosis recomendada de nitrógeno para cada lote")),
                         br(),
                         div(style = "background-color: #DDB89240; padding: 15px; border-radius: 10px;",
-                            h3(HTML(("<strong>Cálculo de dosis de N por Lote</strong>"))),
+                            
                             uiOutput("resultados_tabla"),
+                            uiOutput("mensaje_advertencia"),
                             br(),
                             downloadButton("download_data", "Descargar resultados (.CSV)")
                         ),
                         br(),
+                        br(),
                         fluidRow(
                           column(
                             10, offset = 1,
-                              withSpinner(plotOutput("multi_lotes", height = "700px"),
+                              withSpinner(plotOutput("multi_lotes", height = "500px"),
                                           type = 5,
                                           color = "#0dc5c1",
                                           size = 0.5),
@@ -413,59 +430,65 @@ ui <- fluidPage(
 # Define server logic ----
 server <- function(input, output, session) {
   
-  ####### Registro de usuario
+    ####### Registro de usuario
+    
+    logout_init <- shinyauthr::logoutServer(
+      id = "logout",
+      active = reactive(credentials()$user_auth)
+    )
+    
   
-  logout_init <- shinyauthr::logoutServer(
-    id = "logout",
-    active = reactive(credentials()$user_auth)
-  )
+    credentials <- shinyauthr::loginServer(
+      id = "login",
+      data = get_user_base(),
+      user_col = user,
+      pwd_col = password,
+      sodium_hashed = TRUE,
+      cookie_logins = TRUE,
+      sessionid_col = sessionid,
+      cookie_getter = get_sessionids_from_db,
+      cookie_setter = add_sessionid_to_db,
+      log_out = reactive(logout_init())
+    )
+    
   
-
-  credentials <- shinyauthr::loginServer(
-    id = "login",
-    data = get_user_base(),
-    user_col = user,
-    pwd_col = password,
-    sodium_hashed = TRUE,
-    cookie_logins = TRUE,
-    sessionid_col = sessionid,
-    cookie_getter = get_sessionids_from_db,
-    cookie_setter = add_sessionid_to_db,
-    log_out = reactive(logout_init())
-  )
-  
-
-  
-  observeEvent(input$abrir_registro, {
-    # Mostrar el formulario de registro en un modal
-    showModal(
-      modalDialog(
-        title = "Formulario de Registro",
-        textInput("nombre", "Nombre Completo"),
-        textInput("usuario", "Nombre de Usuario"),
-        textInput("email", "Correo Electrónico"),
-        passwordInput("password", "Contraseña"),
-        passwordInput("confirmar_password", "Confirmar Contraseña"),
-        footer = tagList(
-          modalButton("Cancelar"),
-          actionButton("enviar_registro", "Registrar")
+    
+    observeEvent(input$abrir_registro, {
+      # Mostrar el formulario de registro en un modal
+      showModal(
+        modalDialog(
+          title = "Formulario de Registro",
+          textInput("nombre", "Nombre Completo"),
+          textInput("usuario", "Nombre de Usuario"),
+          textInput("email", "Correo Electrónico"),
+          passwordInput("password", "Contraseña"),
+          passwordInput("confirmar_password", "Confirmar Contraseña"),
+          footer = tagList(
+            modalButton("Cancelar"),
+            actionButton("enviar_registro", "Registrar")
+          )
         )
       )
-    )
-  })
-  
-  # Registrar el nuevo usuario
-  observeEvent(input$enviar_registro, {
-    if (input$password != input$confirmar_password) {
-      showNotification("Las contraseñas no coinciden.", type = "error")
-      return()
-    }
-    if (input$usuario %in% get_user_base()$user) {
-      showNotification("El usuario ya está registrado.", type = "error")
-      return()
-    }
+    })
     
-    save_new_user(
+    # Registrar el nuevo usuario
+    observeEvent(input$enviar_registro, {
+      if (input$password != input$confirmar_password) {
+        showModal(modalDialog(
+          title = "Error",
+          "Las contraseñas no coinciden.",
+          easyClose = TRUE,
+          footer = NULL
+        ))
+        return()
+      }
+      
+      if (input$usuario %in% get_user_base()$user) {
+        showNotification("El usuario ya está registrado.", type = "error")
+        return()
+      }
+      
+      save_new_user(
       user = input$usuario,
       password = input$password,
       name = input$nombre,
@@ -521,7 +544,7 @@ server <- function(input, output, session) {
       numericInput(
         "proteína", 
         label = strong("Proteína Objetivo (%)"), 
-        value = 0
+        value = 10
       )
     } else {
       HTML("<strong>Proteína Objetivo (%)</strong>: No corresponde")
@@ -606,6 +629,15 @@ server <- function(input, output, session) {
                               "Nucleo siembra temprana", 
                               "Nucleo siembra tardia"),
                   selected = "Sudeste siembra temprana")
+    } else if (input$nan > 0 && input$cultivo != "Maiz") {
+      # Mostrar campo numérico para cultivos distintos de Maíz
+      numericInput("valor_no_maiz", 
+                   label = strong("Ingrese el valor para la mineralización (kg N / ppm)"), 
+                   value = switch(input$cultivo,
+                                  "Trigo" = 2.2,
+                                  "Papa" = 3.2,
+                                  0), # Valor por defecto para otros cultivos
+                   min = 0)
     } else {
       # Si no se cumplen las condiciones, no mostrar nada
       NULL
@@ -619,16 +651,16 @@ server <- function(input, output, session) {
              "Sudeste siembra temprana" = 3.2,
              "Nucleo siembra temprana" = 3.6,
              "Nucleo siembra tardia" = 4.2,
-             1)  
+             0)  
+    } else if (input$cultivo != "Maiz" && !is.null(input$valor_no_maiz)) {
+      # Usar el valor ingresado por el usuario para otros cultivos
+      input$valor_no_maiz
     } else {
-      # Valores para otros cultivos
-      switch(input$cultivo,
-             "Trigo" = 2.2,       
-             "Soja" = 1.8,        
-             "Papa" = 3.2,        
-             1)  
+      # Valor por defecto si no se selecciona nada
+      0
     }
   })
+
   
   nan_total <- reactive({
     input$nan * mineralizacion()
@@ -657,7 +689,8 @@ server <- function(input, output, session) {
                "Otros" = 0)  
       }
     } else {
-      1  
+      req(input$valor_no_trigo)  
+      input$valor_no_trigo
     }
   })
   
@@ -746,26 +779,51 @@ server <- function(input, output, session) {
 
   #Múltiples lotes
   
-  output$descarga_modelo_nitrogeno <- downloadHandler(
+  output$descarga_modelo <- downloadHandler(
     filename = function() {
       "data_usuario.xlsx"
     },
     content = function(file) {
       # Crear un dataframe modelo
       modelo <- data.frame(
-        Lote = c(NA, NA), 
-        Cultivo = c(NA, NA), 
-        Rendimiento_objetivo = c(NA, NA), 
+        Lote = c(1, NA), 
+        Cultivo = c("maiz", NA), 
+        Rendimiento_objetivo = c(10, NA), 
         Efecto_antecesor = c(NA, NA),
+        Proteina_objetivo = c(NA, NA),
         N_nitrato_20 = c(NA, NA),
         N_nitrato_40 = c(NA, NA), 
         N_nitrato_60 = c(NA, NA), 
         Nan_20 = c(NA, NA),
-        Densidad_aparente = c(NA, NA)
+        Densidad_aparente = c(1.2, NA)
       )
       
-      # Escribir el archivo Excel usando writexl
-      writexl::write_xlsx(modelo, file)
+      # Crear la segunda hoja: unidades
+      unidades <- data.frame(
+        Variable = c("Lote", "Cultivo", "Rendimiento_objetivo", "Efecto_antecesor", "Proteina_objetivo",
+                     "N_nitrato_20", "N_nitrato_40", "N_nitrato_60", "Nan_20", "Densidad_aparente"),
+        Unidad = c("Número de lote", "Nombre de cultivo", "tn/ha", "kg/ha", "%", "mg/kg", "mg/kg", "mg/kg", "mg/kg", "g/cm³")
+      )
+      
+      # Crear la tercera hoja: aclaraciones
+      aclaraciones <- data.frame(
+        Campo = c("Lote", "Cultivo", "Rendimiento_objetivo"),
+        Detalle = c(
+          "Identificación del lote (nombre o código)",
+          "Cultivo actual sembrado en el lote",
+          "Rendimiento objetivo esperado del cultivo"
+        )
+      )
+      
+      # Crear el archivo con múltiples hojas
+      writexl::write_xlsx(
+        x = list(
+          "Modelo" = modelo,
+          "Unidades" = unidades,
+          "Aclaraciones" = aclaraciones
+        ),
+        path = file
+      )
     }
   )
   
@@ -787,7 +845,7 @@ server <- function(input, output, session) {
     }
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Rendimiento_objetivo", "Efecto_antecesor", "N_nitrato_20",
+    required_columns <- c("Lote", "Cultivo", "Rendimiento_objetivo", "Efecto_antecesor", "Proteina_objetivo", "N_nitrato_20",
                           "N_nitrato_40", "N_nitrato_60", 
                           "Nan_20", "Densidad_aparente")
     missing_columns <- setdiff(required_columns, colnames(data))
@@ -808,12 +866,15 @@ server <- function(input, output, session) {
       data$densidad_aparente <- 1.2
     }
     
-    # Reemplazar valores vacíos (NA) en `Densidad aparente` por 2.4
+    # Reemplazar valores vacíos (NA) en `Densidad aparente` por 1.2
     data$densidad_aparente <- ifelse(
       is.na(data$densidad_aparente) | data$densidad_aparente == "", 
       1.2, 
       as.numeric(data$densidad_aparente)
     )
+    
+    # Reemplazar valores vacíos (NA) con 0 en todas las columnas
+    data[is.na(data)] <- 0
     
     # Confirmar al usuario que el archivo se ha procesado correctamente
     showNotification("Archivo subido correctamente.", type = "message")
@@ -822,6 +883,18 @@ server <- function(input, output, session) {
     return(data)
   })
   
+  observe({
+    existe_nan_20 <- "nan_20" %in% colnames(data_usuario)
+    
+    output$mensaje_advertencia <- renderUI({
+      if (!existe_nan_20) {
+        HTML("<strong>Cuando el valor de Nan no está disponible, el modelo considera el valor medio de mineralización de la región.</strong>")
+      } else {
+        NULL  
+      }
+    })
+  })
+    
   output$zonas_maiz <- renderUI({
     req(data_usuario())
     if ("maiz" %in% data_usuario()$cultivo) {
@@ -835,18 +908,7 @@ server <- function(input, output, session) {
       NULL
     }
   })
-  
-  
-  output$proteina_trigo <- renderUI({
-    req(data_usuario())
-    if ("trigo" %in% data_usuario()$cultivo) {
-      numericInput(
-        "proteina", 
-        label = strong("Para TRIGO ingrese la proteína objetivo (%)"),
-        value = 0
-      )
-    } 
-  })
+
   
   ajustar_requerimiento <- function(req_sistema, req_planta, proteina = NULL) {
     if (!is.null(proteina)) {
@@ -861,6 +923,8 @@ server <- function(input, output, session) {
   
   resultados <- reactive({
     req(data_usuario())
+    req(input$zona)
+    
     datos <- data_usuario()
     
     datos$cultivo <- trimws(datos$cultivo)
@@ -874,6 +938,7 @@ server <- function(input, output, session) {
     datos$nan_20 <- as.numeric(datos$nan_20)
     datos$densidad_aparente <- as.numeric(datos$densidad_aparente)
     
+    zona_maiz <- input$zona
     
     datos <- datos %>%
       mutate(
@@ -881,53 +946,43 @@ server <- function(input, output, session) {
                            n_nitrato_40 +
                            n_nitrato_60) * densidad_aparente * 2),
         Mineralizacion = case_when(
-          cultivo == "maiz" ~ {
-            if (input$zona == "Sudeste siembra temprana") 3.2
-            else if (input$zona == "Nucleo siembra temprana") 3.6
-            else if (input$zona == "Nucleo siembra tardia") 4.2
-            else 1  # Valor por defecto si no se selecciona una zona válida
-          },
+          cultivo == "maiz" & zona_maiz == "Sudeste siembra temprana" ~ 3.2,
+          cultivo == "maiz" & zona_maiz == "Nucleo siembra temprana" ~ 3.6,
+          cultivo == "maiz" & zona_maiz == "Nucleo siembra tardia" ~ 4.2,
+          cultivo == "maiz" ~ 1,  
           cultivo == "trigo" ~ 2.2,
-          cultivo == "girasol" ~ 2.5,
+          cultivo == "girasol" ~ 0,
           cultivo == "papa" ~ 3.2,
-          TRUE ~ 1.0 
+          TRUE ~ 0 
         ),
-        Nan_total = ifelse(!is.na(nan_20), nan_20 * Mineralizacion, NA)
+        Nan_total = ifelse(nan_20 > 0, nan_20 * Mineralizacion, 0)
       )
     
     req_sistema <- c(maiz = 30, trigo = 50, girasol = 60, papa = 6)
     req_planta <- c(maiz = 20, trigo = 30, girasol = 40, papa = 4)
     
-    ajustes <- ajustar_requerimiento(
-      req_sistema = req_sistema["trigo"],
-      req_planta = req_planta["trigo"],
-      proteina = input$proteina
-    )
-    
-    req_sistema["trigo"] <- ajustes$req_N_sistema
-    req_planta["trigo"] <- ajustes$req_N_planta
     
     # Calcular Oferta, Demanda y DosisN por Lote
     datos <- datos %>%
       mutate(
         Requerimiento = case_when(
-          !is.na(nan_20) ~ case_when(
+          nan_20 > 0 ~ case_when(
             cultivo == "maiz" ~ req_sistema["maiz"],
-            cultivo == "trigo" ~ req_sistema["trigo"],
+            cultivo == "trigo" ~ req_sistema["trigo"] + (req_sistema["trigo"] * (proteina_objetivo - 10) / 10),  # Ajuste para trigo cuando nan_20 > 0
             cultivo == "girasol" ~ req_sistema["girasol"],
             cultivo == "papa" ~ req_sistema["papa"],
             TRUE ~ 0
           ),
-          is.na(nan_20) ~ case_when(
+          nan_20 == 0 ~ case_when(
             cultivo == "maiz" ~ req_planta["maiz"],
-            cultivo == "trigo" ~ req_planta["trigo"],
+            cultivo == "trigo" ~ req_planta["trigo"] + (req_planta["trigo"] * (proteina_objetivo - 10) / 10),  # Ajuste para trigo cuando nan_20 == 0
             cultivo == "girasol" ~ req_planta["girasol"],
             cultivo == "papa" ~ req_planta["papa"],
             TRUE ~ 0
           ),
           TRUE ~ 0
         ),
-        OfertaN = N_disponible + coalesce(Nan_total, 0) + efecto_antecesor,
+        OfertaN = N_disponible + coalesce(Nan_total, 0) + coalesce(efecto_antecesor, 0),
         DemandaN = rendimiento_objetivo * Requerimiento,
         DosisN = DemandaN - OfertaN
       )
@@ -956,15 +1011,15 @@ server <- function(input, output, session) {
     tabla_html <- paste0(
       "<table style='width: 100%; border-collapse: collapse;'>",
       "<thead><tr>",
-      "<th style='background-color: #CCCCCC; padding: 1px;'>Lote</th>",
-      "<th style='background-color: #CCCCCC; padding: 1px;'>Cultivo</th>",
-      "<th style='background-color: #CCCCCC; padding: 1px;'>Efecto antecesor</th>",
-      "<th style='background-color: #A9D18E; padding: 1px;'>Rendimiento (tn / ha)</th>",
-      "<th style='background-color: #A9D18E; padding: 1px;'>Demanda (kg N / ha)</th>",
-      "<th style='background-color: #F4B183; padding: 1px;'>N mineralizable (kg N / ha)</th>",
-      "<th style='background-color: #F4B183; padding: 1px;'>Nitrogeno Disponible (kg N / ha)</th>",
-      "<th style='background-color: #F4B183; padding: 1px;'>Oferta (kg N / ha)</th>",
-      "<th style='background-color: #FF9999; padding: 1px;'>Dosis (kg N / ha)</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
+      "<th style='background-color: #06A77D60; padding: 5px;'>Rendimiento <br>(tn / ha)</th>",
+      "<th style='background-color: #06A77D60; padding: 5px;'>Demanda <br>(kg N / ha)</th>",
+      "<th style='background-color: #FF991460; padding: 5px;'>Efecto antecesor <br>(kg N / ha)</th>",
+      "<th style='background-color: #FF991460; padding: 5px;'>N mineralizable <br>(kg N / ha)</th>",
+      "<th style='background-color: #FF991460; padding: 5px;'>Nitrogeno Disponible <br>(kg N / ha)</th>",
+      "<th style='background-color: #FF991460; padding: 5px;'>Oferta <br>(kg N / ha)</th>",
+      "<th style='background-color: #C5223360; padding: 5px;'>Dosis <br>(kg N / ha)</th>",
       "</tr></thead>",
       "<tbody>",
       paste(
@@ -998,15 +1053,19 @@ server <- function(input, output, session) {
     
     # Crear una columna Titulo combinando Lote y Cultivo
     datos <- datos %>%
-      mutate(Titulo = paste("Lote", Lote, "-", toupper(Cultivo)))
+      mutate(Titulo = paste("Lote", Lote, "-", toupper(Cultivo)),
+             Lote_num = as.numeric(gsub("\\D", "", Lote)))
+    
+    datos <- datos %>%
+      arrange(Lote_num)
     
     # Filtrar para solo mostrar "Dosis N (kg/ha)" y cambiar el formato de los datos
     datos_dosis <- datos %>%
-      select(Lote, Cultivo, `Dosis N (kg N / ha)`, Titulo) %>%
-      mutate(Titulo = paste("Lote", Lote, "-", toupper(Cultivo)))
+      select(Lote, Cultivo, `Dosis N (kg N / ha)`, Titulo) 
     
-    ggplot(datos_dosis, aes(x = Titulo, y = `Dosis N (kg N / ha)`, fill = "#C52233", color = "#C52233" )) +
-      geom_bar(stat = "identity", position = "dodge", size = 0.5, fill = alpha("#C52233", 0.6)) +
+    ggplot(datos_dosis,  aes(x = factor(Titulo, levels = unique(Titulo)), y = `Dosis N (kg N / ha)`, fill = "#C52233", color = "#C52233" )) +
+      geom_bar(stat = "identity", position = position_dodge(width = 0.5), 
+               width = 0.6, fill = alpha("#C52233", 0.6), color = "#C52233") +
       geom_text(aes(label = round(`Dosis N (kg N / ha)`, 0)), 
                 position = position_dodge(width = 0.9), 
                 vjust = -0.1, 
@@ -1021,7 +1080,7 @@ server <- function(input, output, session) {
       theme_minimal() +
       theme(
         axis.text.y = element_text(face = "bold", size = 16),  
-        axis.text.x = element_text(face = "bold", size = 16),  # Ajustar el tamaño del texto en el eje X
+        axis.text.x = element_text(face = "bold", size = 16, angle = 45, hjust = 1),  # Ajustar el tamaño del texto en el eje X
         axis.title.x = element_text(face = "bold", size = 16),  
         axis.title.y = element_text(face = "bold", size = 16),  
         legend.position = "none",  # No mostrar leyenda
@@ -1043,8 +1102,16 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # Guardar el gráfico como archivo
-      png(file, width = 700, height = 500, res = 60)
-      print(generar_grafico(resultados()))
+      png(file, width = 600, height = 400, res = 60)
+      print(
+        generar_grafico(resultados()) +
+          labs(title = "Dosis recomendada de nitrógeno para cada lote",
+               caption = Sys.Date()
+               ) +  # Agregar el título
+          theme(plot.title = element_text(face = "bold", size = 14, hjust = 0, vjust = 1.1),
+                plot.caption = element_text(size = 12, hjust = 1, face = "italic"),
+                plot.title.position = "plot")  # Alinear el título a la izquierda
+      )
       dev.off()
     }
   )
@@ -1059,7 +1126,7 @@ shinyApp(ui, server )
 # renv::restore()
 # renv::snapshot()
 
-#  rsconnect::setAccountInfo(name='intabalcarce',
+# rsconnect::setAccountInfo(name='intabalcarce',
 #                            token='C0EB33DC639D60FE1930A4CA5CC8141F',
 #                            secret='xQn4aq7hXde1aFaoEpJM5BzIoBEKHw247ACHktKH')
 
