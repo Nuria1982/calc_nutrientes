@@ -847,8 +847,9 @@ server <- function(input, output, session) {
       modelo <- data.frame(
         Lote = c(1, 1, 1, 2, 2, 2), 
         Cultivo = c("maiz", "maiz", "maiz", "trigo", "trigo", "trigo"),
-        Cultivo_antecesor = c("", "", "", "soja", "soja", "soja"),
         Rendimiento_objetivo = c(NA, NA, NA, NA, NA, NA), 
+        Cultivo_antecesor = c("", "", "", "soja", "soja", "soja"),
+        Rendimiento_objetivo_cultivo_antecesor = c(NA, NA, NA, NA, NA, NA), 
         Efecto_antecesor = c(NA, NA, NA, NA, NA, NA),
         Proteina_objetivo = c(NA, NA, NA, NA, NA, NA),
         Nan_20 = c(NA, NA, NA, NA, NA, NA),
@@ -864,10 +865,10 @@ server <- function(input, output, session) {
       
       # Crear la segunda hoja: unidades
       unidades <- data.frame(
-        Variable = c("Lote", "Cultivo", "Cultivo_antecesor", "Rendimiento_objetivo", "Efecto_antecesor", "Proteina_objetivo",
+        Variable = c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_antecesor", "Rendimiento_objetivo_cultivo_antecesor", "Efecto_antecesor", "Proteina_objetivo",
                      "Nan_20", "Densidad_aparente", "Estrato", "N_nitrato", "P_Bray_actual", "nivelP_objetivo", 
                      "factor_construccion", "Nutriente_en_grano_P", "Nutriente_en_grano_S"),
-        Unidad = c("Número de lote", "Nombre de cultivo", "Nombre de cultivo antecesor", "tn/ha", "kg/ha", "%", "mg/kg", "g/cm³", 
+        Unidad = c("Número de lote", "Nombre de cultivo", "tn/ha", "Nombre de cultivo antecesor", "tn/ha", "kg/ha", "%", "mg/kg", "g/cm³", 
                    "Rango de profundidad", "mg/kg", "P Bray", "ppm", "kg P/ppm", "kg P/t", "kg S/t")
       )
       
@@ -913,11 +914,11 @@ server <- function(input, output, session) {
       estilo_general5 <- createStyle(border = "Bottom",
                                      fgFill = "gray90")
      
-      addStyle(wb, "Modelo", style = estilo_general1, rows = 1, cols = c(1:15), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general2, rows = c(2, 5), cols = c(1:8, 9:15), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general5, rows = c(4, 7), cols = c(9,10), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general4, rows = c(3, 6), cols = c(9,10), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general3, rows = c(4, 7), cols = c(1:8, 11:15), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general1, rows = 1, cols = c(1:16), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general2, rows = c(2, 5), cols = c(1:9, 10:16), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general5, rows = c(4, 7), cols = c(10,11), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general4, rows = c(3, 6), cols = c(10,11), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general3, rows = c(4, 7), cols = c(1:9, 12:16), gridExpand = TRUE)
       
       
       
@@ -954,7 +955,7 @@ server <- function(input, output, session) {
     }
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Cultivo_antecesor", "Rendimiento_objetivo", "Efecto_antecesor", "Proteina_objetivo",
+    required_columns <- c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_antecesor", "Rendimiento_objetivo_cultivo_antecesor", "Efecto_antecesor", "Proteina_objetivo",
                           "Nan_20", "Densidad_aparente", "Estrato", "N_nitrato", "P_Bray_actual", "nivelP_objetivo", 
                           "factor_construccion", "Nutriente_en_grano_P", "Nutriente_en_grano_S")
     missing_columns <- setdiff(required_columns, colnames(data))
@@ -986,8 +987,9 @@ server <- function(input, output, session) {
     data <- data %>%
       group_by(lote, cultivo) %>%
       summarise(
-        cultivo_antecesor = first(cultivo_antecesor),
         rendimiento_objetivo = first(rendimiento_objetivo),
+        cultivo_antecesor = first(cultivo_antecesor),
+        rendimiento_objetivo_cultivo_antecesor = first(rendimiento_objetivo_cultivo_antecesor),
         efecto_antecesor = first(efecto_antecesor),
         proteina_objetivo = first(proteina_objetivo),
         nan_20 = first(nan_20),
@@ -1743,8 +1745,9 @@ server <- function(input, output, session) {
     datos <- datos %>%
       mutate(
         cultivo = trimws(tolower(cultivo)), 
-        cultivo_antecesor = trimws(tolower(cultivo_antecesor)), 
         rendimiento_objetivo = as.numeric(rendimiento_objetivo),
+        cultivo_antecesor = trimws(tolower(cultivo_antecesor)), 
+        rendimiento_objetivo_cultivo_antecesor = as.numeric(rendimiento_objetivo_cultivo_antecesor),
         p_bray_actual = as.numeric(p_bray_actual),
         nivelp_objetivo = as.numeric(nivelp_objetivo),
         factor_construccion = as.numeric(factor_construccion),
@@ -1762,23 +1765,44 @@ server <- function(input, output, session) {
         nivel_p = ifelse(nivelp_objetivo == 0, niveles_p[cultivo], nivelp_objetivo)
       )
     
+    
+    
     datos <- datos %>%
       mutate(
-        filtro_rango = map(cultivo, ~ 
-                             dosis_data %>% 
-                             filter(cultivoP == .x, p_bray_actual >= P_min, p_bray_actual < P_max)
-        ),
-        dosis_suficiencia_min = map_dbl(filtro_rango, ~ 
-                                          ifelse(!is.null(.x) && nrow(.x) > 0, 
-                                                 min(.x$min_dosis, na.rm = TRUE), NA_real_)
-        ),
-        dosis_suficiencia_max = map_dbl(filtro_rango, ~ 
-                                          ifelse(!is.null(.x) && nrow(.x) > 0, 
-                                                 max(.x$max_dosis, na.rm = TRUE), NA_real_)
-        ),
+        filtro_rango = map2(cultivo, p_bray_actual, ~ {
+          result <- dosis_data %>% filter(cultivoP == .x, .y >= P_min, .y < P_max)
+          result
+        }),
+        dosis_suficiencia_min = map_dbl(filtro_rango, ~ {
+          if (!is.null(.x) && nrow(.x) > 0) {
+            min(.x$min_dosis, na.rm = TRUE)
+          } else {
+            print("Dosis mínima no encontrada")
+            NA_real_
+          }
+        }),
+        dosis_suficiencia_max = map_dbl(filtro_rango, ~ {
+          if (!is.null(.x) && nrow(.x) > 0) {
+            max(.x$max_dosis, na.rm = TRUE)
+          } else {
+            print("Dosis máxima no encontrada")
+            NA_real_
+          }
+        })
+      ,
         mantener_P = rendimiento_objetivo * factor_mantener,
         construir_P = pmax(0, (nivel_p - p_bray_actual) * factor_construir),
-        dosisCyM = construir_P + mantener_P
+      
+      mantener_P_antecesor = ifelse(
+        !is.na(cultivo_antecesor) & cultivo_antecesor != "",
+        rendimiento_objetivo_cultivo_antecesor * factores_mantener[tolower(cultivo_antecesor)],
+        0
+      ),
+      
+      # Suma de construir_P y construir_P_antecesor
+      mantener_P_total = mantener_P + mantener_P_antecesor,
+      dosisCyM = construir_P + mantener_P_total
+      
       ) %>%
       ungroup()
     
