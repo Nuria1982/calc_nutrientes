@@ -237,7 +237,8 @@ ui <- fluidPage(
 
   br(),
   br(),
-  tabsetPanel(id = "main_tabs",
+  tabsetPanel(
+    id = "main_tabs",
     tabPanel("Principal",
              br(),
              h5(HTML("El manejo responsable de nutrientes y de los fertilizantes, en los sistemas agrícolas 
@@ -419,7 +420,8 @@ ui <- fluidPage(
                )
              ),
                
-               tabPanel("Múltiples lotes",
+               tabPanel("Múltiples lotes", 
+                        value = "seccion_nitrogeno",
                         h3(strong("Cálculo de la dosis recomendada de nitrógeno para cada lote")),
                         br(),
                         fluidRow(  
@@ -639,18 +641,27 @@ ui <- fluidPage(
                                      h4(strong("xxxxxxxxxxxxxxx")),
                                      fluidRow(
                                        column(6, 
-                                              numericInput("nitrato_20_S",  
-                                                           label = strong(HTML("N-nitrato (ppm) (0-20cm)")),
+                                              numericInput("azufre_20",  
+                                                           label = strong(HTML("S-sulfato (ppm) (0-20cm)")),
                                                            value = 0),
-                                              numericInput("nitrato_40_s",  
-                                                           label = strong(HTML("N-nitrato (ppm) (20-40cm)")),
+                                              numericInput("azufre_40",  
+                                                           label = strong(HTML("S-sulfato (ppm) (20-40cm)")),
                                                            value = 0),
-                                              numericInput("nitrato_60_s",  
-                                                           label = strong(HTML("N-nitrato (ppm) (40-60cm)")),
+                                              numericInput("azufre_60",  
+                                                           label = strong(HTML("S-sulfato (ppm) (40-60cm)")),
                                                            value = 0),
                                               numericInput("dens_ap_s",  
                                                            label = strong(HTML("Densidad aparente (g / cm3)")), 
-                                                           value = 1.2)
+                                                           value = 1.2),
+                                              fluidRow(
+                                                column(12, 
+                                                       div(style = "background-color: #FF991490; padding: 10px; border-radius: 10px; text-align: center;",
+                                                           h6(HTML("<strong>Azufre Disponible</strong><br><small>(0-60cm, kg S/ha)</small>")),
+                                                           div(style = "font-size: 18px; font-weight: bold;",
+                                                               uiOutput("azufre_disp"))
+                                                       )
+                                                )
+                                              )
                                        ),
                                        column(6,
                                               numericInput("nan_s",  
@@ -692,7 +703,8 @@ ui <- fluidPage(
                           )
                         )
                ),
-                 tabPanel("Múltiples lotes",
+                 tabPanel("Múltiples lotes", 
+                          value = "seccion_azufre",
                           h3(strong("Cálculo de la dosis recomendada de azufre para cada lote")),
                           br(),
                           fluidRow(  
@@ -712,13 +724,25 @@ ui <- fluidPage(
     tabPanel("Recomendaciones",
              br(),
              h2(HTML("<strong>Recomendaciones</strong>")),
-             h4(HTML("xxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxx")),
+             uiOutput("mensajes_informativos"),
              br(),
              div(style = "background-color: #DDB89240; padding: 15px; border-radius: 10px;",
                  
                  uiOutput("tabla_total"),
                  br(),
                  downloadButton("descarga_total", "Descargar resultados (.CSV)")
+             ),
+             br(),
+             div(style = "background-color: #C5223340; padding: 15px; border-radius: 10px;",
+                 
+             ),
+             br(),
+             div(style = "background-color: #BC6C2540; padding: 15px; border-radius: 10px;",
+                 
+             ),
+             br(),
+             div(style = "background-color: #DEB84140; padding: 15px; border-radius: 10px;",
+                 
              )
     )
   )
@@ -848,28 +872,29 @@ server <- function(input, output, session) {
         Lote = c(1, 1, 1, 2, 2, 2), 
         Cultivo = c("maiz", "maiz", "maiz", "trigo", "trigo", "trigo"),
         Rendimiento_objetivo = c(NA, NA, NA, NA, NA, NA), 
-        Cultivo_antecesor = c("", "", "", "soja", "soja", "soja"),
-        Rendimiento_objetivo_cultivo_antecesor = c(NA, NA, NA, NA, NA, NA), 
+        Cultivo_segunda = c("", "", "", "soja", "soja", "soja"),
+        Rendimiento_objetivo_cultivo_segunda = c(NA, NA, NA, NA, NA, NA), 
         Efecto_antecesor = c(NA, NA, NA, NA, NA, NA),
         Proteina_objetivo = c(NA, NA, NA, NA, NA, NA),
-        Nan_20 = c(NA, NA, NA, NA, NA, NA),
-        Densidad_aparente = c(1.2, NA, NA, 1.0, NA, NA),
         Estrato = c("0-20", "20-40", "40-60", "0-20", "20-40", "40-60"),
-        N_nitrato = c(NA, NA, NA, NA, NA, NA),
+        Densidad_aparente = c(1.2, NA, NA, 1.0, NA, NA),
         P_Bray_actual = c(NA, NA, NA, NA, NA, NA),
+        Nan_20 = c(NA, NA, NA, NA, NA, NA),
+        N_nitrato = c(NA, NA, NA, NA, NA, NA),
+        S_sulfato = c(NA, NA, NA, NA, NA, NA),
         nivelP_objetivo = c(NA, NA, NA, NA, NA, NA),
-        factor_construccion = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_P = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_S = c(NA, NA, NA, NA, NA, NA)
       )
       
       # Crear la segunda hoja: unidades
       unidades <- data.frame(
-        Variable = c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_antecesor", "Rendimiento_objetivo_cultivo_antecesor", "Efecto_antecesor", "Proteina_objetivo",
-                     "Nan_20", "Densidad_aparente", "Estrato", "N_nitrato", "P_Bray_actual", "nivelP_objetivo", 
-                     "factor_construccion", "Nutriente_en_grano_P", "Nutriente_en_grano_S"),
-        Unidad = c("Número de lote", "Nombre de cultivo", "tn/ha", "Nombre de cultivo antecesor", "tn/ha", "kg/ha", "%", "mg/kg", "g/cm³", 
-                   "Rango de profundidad", "mg/kg", "P Bray", "ppm", "kg P/ppm", "kg P/t", "kg S/t")
+        Variable = c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_segunda", "Rendimiento_objetivo_cultivo_segunda", "Efecto_antecesor", "Proteina_objetivo",
+                     "Estrato", "Densidad_aparente", "P_Bray_actual", "Nan_20", "N_nitrato", "S_sulfato","nivelP_objetivo", 
+                     "Nutriente_en_grano_P", "Nutriente_en_grano_S"),
+        Unidad = c("Número de lote", "Nombre de cultivo", "tn/ha", "Nombre de cultivo de segunda", "tn/ha", "kg/ha", "%", 
+                   "Rango de profundidad", "g/cm³", "P Bray", "mg/kg", "mg/kg", "mg/kg", "ppm", 
+                   "kg P/t", "kg S/t")
       )
       
       # Crear la tercera hoja: aclaraciones
@@ -915,10 +940,10 @@ server <- function(input, output, session) {
                                      fgFill = "gray90")
      
       addStyle(wb, "Modelo", style = estilo_general1, rows = 1, cols = c(1:16), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general2, rows = c(2, 5), cols = c(1:9, 10:16), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general5, rows = c(4, 7), cols = c(10,11), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general4, rows = c(3, 6), cols = c(10,11), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general3, rows = c(4, 7), cols = c(1:9, 12:16), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general2, rows = c(2, 5), cols = c(1:16), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general5, rows = c(4, 7), cols = c(8,12,13), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general4, rows = c(3, 6), cols = c(8,12,13), gridExpand = TRUE)
+      addStyle(wb, "Modelo", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:11, 14:16), gridExpand = TRUE)
       
       
       
@@ -955,9 +980,9 @@ server <- function(input, output, session) {
     }
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_antecesor", "Rendimiento_objetivo_cultivo_antecesor", "Efecto_antecesor", "Proteina_objetivo",
-                          "Nan_20", "Densidad_aparente", "Estrato", "N_nitrato", "P_Bray_actual", "nivelP_objetivo", 
-                          "factor_construccion", "Nutriente_en_grano_P", "Nutriente_en_grano_S")
+    required_columns <- c("Lote", "Cultivo", "Rendimiento_objetivo", "Cultivo_segunda", "Rendimiento_objetivo_cultivo_segunda", "Efecto_antecesor", "Proteina_objetivo",
+                          "Estrato", "Densidad_aparente", "P_Bray_actual", "Nan_20", "N_nitrato", "S_sulfato","nivelP_objetivo", 
+                          "Nutriente_en_grano_P", "Nutriente_en_grano_S")
     missing_columns <- setdiff(required_columns, colnames(data))
     
     if (length(missing_columns) > 0) {
@@ -972,7 +997,7 @@ server <- function(input, output, session) {
     
     colnames(data) <- tolower(colnames(data))
     data$cultivo <- tolower(data$cultivo)
-    data$cultivo_antecesor <- tolower(data$cultivo_antecesor)
+    data$cultivo_segunda <- tolower(data$cultivo_segunda)
     
     
     
@@ -980,7 +1005,10 @@ server <- function(input, output, session) {
       mutate(
         n_nitrato_20 = ifelse(estrato == "0-20", n_nitrato, 0),
         n_nitrato_40 = ifelse(estrato == "20-40", n_nitrato, 0),
-        n_nitrato_60 = ifelse(estrato == "40-60", n_nitrato, 0)
+        n_nitrato_60 = ifelse(estrato == "40-60", n_nitrato, 0),
+        s_sulfato_20 = ifelse(estrato == "0-20", s_sulfato, 0),
+        s_sulfato_40 = ifelse(estrato == "20-40", s_sulfato, 0),
+        s_sulfato_60 = ifelse(estrato == "40-60", s_sulfato, 0)
       )
     
     
@@ -988,8 +1016,8 @@ server <- function(input, output, session) {
       group_by(lote, cultivo) %>%
       summarise(
         rendimiento_objetivo = first(rendimiento_objetivo),
-        cultivo_antecesor = first(cultivo_antecesor),
-        rendimiento_objetivo_cultivo_antecesor = first(rendimiento_objetivo_cultivo_antecesor),
+        cultivo_segunda = first(cultivo_segunda),
+        rendimiento_objetivo_cultivo_segunda = first(rendimiento_objetivo_cultivo_segunda),
         efecto_antecesor = first(efecto_antecesor),
         proteina_objetivo = first(proteina_objetivo),
         nan_20 = first(nan_20),
@@ -997,9 +1025,11 @@ server <- function(input, output, session) {
         n_nitrato_20 = max(n_nitrato_20, na.rm = TRUE),
         n_nitrato_40 = max(n_nitrato_40, na.rm = TRUE),
         n_nitrato_60 = max(n_nitrato_60, na.rm = TRUE),
+        s_sulfato_20 = max(s_sulfato_20, na.rm = TRUE),
+        s_sulfato_40 = max(s_sulfato_40, na.rm = TRUE),
+        s_sulfato_60 = max(s_sulfato_60, na.rm = TRUE),
         p_bray_actual = first(p_bray_actual),
         nivelp_objetivo = first(nivelp_objetivo),
-        factor_construccion = first(factor_construccion),
         nutriente_en_grano_p = first(nutriente_en_grano_p),
         nutriente_en_grano_s = first(nutriente_en_grano_s)
       ) %>%
@@ -1165,7 +1195,7 @@ server <- function(input, output, session) {
   
   output$nan_total <- renderUI({
     if (input$nan > 0) {
-      round(nan_total(), 2)
+      round(nan_total(), 0)
     } else {
       HTML(paste0("<strong>El modelo considera el valor medio de mineralización de la región.</strong> "))
     }
@@ -1192,7 +1222,7 @@ server <- function(input, output, session) {
   })
   
   output$efecto_antecesor <- renderUI({
-    round(efecto_antecesor(), 2)
+    round(efecto_antecesor(), 0)
   })
   
   
@@ -1315,9 +1345,9 @@ server <- function(input, output, session) {
     
     datos <- datos %>%
       mutate(
-        N_disponible = ((n_nitrato_20 +
+        N_disponible = round(((n_nitrato_20 +
                            n_nitrato_40 +
-                           n_nitrato_60) * densidad_aparente * 2),
+                           n_nitrato_60) * densidad_aparente * 2), 0),
         Mineralizacion = case_when(
           cultivo == "maiz" & zona_maiz == "Sudeste siembra temprana" ~ 3.2,
           cultivo == "maiz" & zona_maiz == "Nucleo siembra temprana" ~ 3.6,
@@ -1546,7 +1576,7 @@ server <- function(input, output, session) {
             div(
               style = "font-size: 25px; font-weight: bold; margin-top: 10px;",
               if (!is.na(dosis_vals$dosis)) {
-                paste(round(dosis_vals$dosis, 2))
+                paste(round(dosis_vals$dosis, 0))
               } else {
                 "No hay dosis disponible"
               }
@@ -1575,11 +1605,11 @@ server <- function(input, output, session) {
             style = "display: flex; flex-direction: column; align-items: flex-start;",
             div(
               style = "font-size: 25px; font-weight: bold;",
-              "Mínima: ", round(dosis_vals$min, 2)
+              "Mínima: ", dosis_vals$min
             ),
             div(
               style = "font-size: 25px; font-weight: bold;",
-              "Máxima: ", round(dosis_vals$max, 2)
+              "Máxima: ", dosis_vals$max
             )
           ),
           div(
@@ -1647,7 +1677,7 @@ server <- function(input, output, session) {
   })
   
   output$construir_P <- renderUI({
-    HTML(paste("<strong>Construcción:</strong>", round(construir_P(), 2), "kg P / ha"))
+    HTML(paste("<strong>Construcción:</strong>", round(construir_P(), 0), "kg P / ha"))
   })
  
   
@@ -1658,7 +1688,7 @@ server <- function(input, output, session) {
   })
   
   output$mantener_P <- renderUI({
-    HTML(paste("<strong>Mantenimiento:</strong>", round(mantener_P(), 2), "kg P / ha"))
+    HTML(paste("<strong>Mantenimiento:</strong>", round(mantener_P(), 0), "kg P / ha"))
   })
  
   
@@ -1688,7 +1718,7 @@ server <- function(input, output, session) {
   })
   
   output$mantener_P_2 <- renderUI({
-    HTML(paste("<strong>Mantenimiento:</strong>", round(mantener_P_2(), 2), "kg P / ha"))
+    HTML(paste("<strong>Mantenimiento:</strong>", round(mantener_P_2(), 0), "kg P / ha"))
   })
   
   dosisCyM <- reactive({
@@ -1724,7 +1754,7 @@ server <- function(input, output, session) {
 
         div(
           style = "font-size: 30px; font-weight: bold;",
-          round(dosis_valor, 2)
+          round(dosis_valor, 0)
         ),
         div(
           class = "icon-container",
@@ -1746,11 +1776,10 @@ server <- function(input, output, session) {
       mutate(
         cultivo = trimws(tolower(cultivo)), 
         rendimiento_objetivo = as.numeric(rendimiento_objetivo),
-        cultivo_antecesor = trimws(tolower(cultivo_antecesor)), 
-        rendimiento_objetivo_cultivo_antecesor = as.numeric(rendimiento_objetivo_cultivo_antecesor),
+        cultivo_segunda = trimws(tolower(cultivo_segunda)), 
+        rendimiento_objetivo_cultivo_segunda = as.numeric(rendimiento_objetivo_cultivo_segunda),
         p_bray_actual = as.numeric(p_bray_actual),
         nivelp_objetivo = as.numeric(nivelp_objetivo),
-        factor_construccion = as.numeric(factor_construccion),
         nutriente_en_grano_p = as.numeric(nutriente_en_grano_p)
       )
     
@@ -1761,7 +1790,6 @@ server <- function(input, output, session) {
     datos <- datos %>%
       mutate(
         factor_mantener = ifelse(nutriente_en_grano_p == 0, factores_mantener[cultivo], nutriente_en_grano_p),
-        factor_construir = ifelse(factor_construccion == 0, factores_construir[cultivo], factor_construccion),
         nivel_p = ifelse(nivelp_objetivo == 0, niveles_p[cultivo], nivelp_objetivo)
       )
     
@@ -1790,12 +1818,12 @@ server <- function(input, output, session) {
           }
         })
       ,
-        mantener_P = rendimiento_objetivo * factor_mantener,
-        construir_P = pmax(0, (nivel_p - p_bray_actual) * factor_construir),
+        mantener_P = round(rendimiento_objetivo * factor_mantener, 0),
+        construir_P = round(pmax(0, (nivel_p - p_bray_actual) * factores_construir), 0),
       
       mantener_P_antecesor = ifelse(
-        !is.na(cultivo_antecesor) & cultivo_antecesor != "",
-        rendimiento_objetivo_cultivo_antecesor * factores_mantener[tolower(cultivo_antecesor)],
+        !is.na(cultivo_segunda) & cultivo_segunda != "",
+        round(rendimiento_objetivo_cultivo_segunda * factores_mantener[tolower(cultivo_segunda)], 0),
         0
       ),
       
@@ -1809,12 +1837,12 @@ server <- function(input, output, session) {
     # Seleccionar columnas relevantes
     datos_resultado <- datos %>%
       select(
-        lote, cultivo, cultivo_antecesor, rendimiento_objetivo, dosis_suficiencia_min, dosis_suficiencia_max, 
+        lote, cultivo, cultivo_segunda, rendimiento_objetivo, dosis_suficiencia_min, dosis_suficiencia_max, 
         construir_P, mantener_P, dosisCyM
       ) %>%
       rename(Lote = lote,
              Cultivo = cultivo,
-             `Cultivo antecesor` = cultivo_antecesor,
+             `Cultivo de segunda` = cultivo_segunda,
              `Rendimiento (tn/ha)` = rendimiento_objetivo,
              `Dosis minima de suficiencia (kg P / ha)` = dosis_suficiencia_min,
              `Dosis maxima de suficiencia (kg P / ha)` = dosis_suficiencia_max,
@@ -1997,20 +2025,33 @@ server <- function(input, output, session) {
       req(input$cultivoS)  
       
       if (input$cultivoS == "maiz") {
-        updateNumericInput(session, "factor_s", value = 2.6)
+        updateNumericInput(session, "factor_s", value = 1.2)
         
       } else if (input$cultivoS == "soja") {
-        updateNumericInput(session, "factor_s", value = 4.5)
+        updateNumericInput(session, "factor_s", value = 3.5)
         
       } else if (input$cultivoS == "trigo") {
-        updateNumericInput(session, "factor_s", value = 3.2)
+        updateNumericInput(session, "factor_s", value = 1.5)
         
       } else if (input$cultivoS == "girasol") {
-        updateNumericInput(session, "factor_s", value = 6)
+        updateNumericInput(session, "factor_s", value = 2.5)
         
       } else if (input$cultivoS == "papa") {
-        updateNumericInput(session, "factor_s", value = 0.45)
+        updateNumericInput(session, "factor_s", value = 1.5)
       }
+    })
+    
+    azufre_disp <- reactive({
+      densidad_aparente <- ifelse(!is.null(input$dens_ap) && input$dens_ap != 0, input$dens_ap, 1.2)
+      if (!is.null(input$azufre) && input$azufre > 0) {
+        input$azufre * densidad_aparente * 2
+      } else {
+        (input$azufre_20 + input$azufre_40 + input$azufre_60) * (densidad_aparente * 2)
+      }
+    })
+    
+    output$azufre_disp <- renderUI({
+      round(azufre_disp(), 2)
     })
     
     
@@ -2022,16 +2063,16 @@ server <- function(input, output, session) {
     
     output$dosis_s <- renderUI({
       
-      req(input$nitrato_20_S, input$nitrato_40_s, input$nitrato_60_s, input$nan_s, input$zona_s, input$dens_ap_s)
+      req(input$azufre_20, input$azufre_40, input$azufre_60, input$nan_s, input$zona_s, input$dens_ap_s)
       
       # Condiciones
-      suma_nitratos <- (input$nitrato_20_S + input$nitrato_40_s + input$nitrato_60_s) * input$dens_ap_s
-      condicion1 <- (input$nitrato_20_S * input$dens_ap_s) < 10
-      condicion2 <- suma_nitratos < 45
-      condicion3 <- (input$zona_s == "Sudeste de Bs.As" && input$nan_s < 50) || 
-        (input$zona_s == "Otras zonas" && input$nan_s < 30)
+      suma_sulfato <- (input$azufre_20 + input$azufre_40 + input$azufre_60) * input$dens_ap_s * 2
+      condicion1 <- input$azufre_20 < 10 
+      condicion2 <- suma_sulfato < 45 
+      condicion3 <- (input$zona_s == "Sudeste de Bs.As" && input$nan_s < 65) || 
+        (input$zona_s == "Otras zonas" && input$nan_s < 40)
       
-      if ((condicion1 || condicion2) && condicion3) {
+      if (condicion1 && condicion2 && condicion3) {
         
       dosis_valor <- dosis_s()  
       
@@ -2048,7 +2089,7 @@ server <- function(input, output, session) {
           
           div(
             style = "font-size: 30px; font-weight: bold;",
-            round(dosis_valor, 2)
+            round(dosis_valor, 0)
           ),
           div(
             class = "icon-container",
@@ -2090,14 +2131,14 @@ server <- function(input, output, session) {
           cultivo = trimws(tolower(cultivo)), 
           rendimiento_objetivo = as.numeric(rendimiento_objetivo),
           nutriente_en_grano_s = as.numeric(nutriente_en_grano_s),
-          n_nitrato_20 = as.numeric(n_nitrato_20), 
-          n_nitrato_40 = as.numeric(n_nitrato_40),
-          n_nitrato_60 = as.numeric(n_nitrato_60),
+          s_sulfato_20 = as.numeric(s_sulfato_20), 
+          s_sulfato_40 = as.numeric(s_sulfato_40),
+          s_sulfato_60 = as.numeric(s_sulfato_60),
           nan_20 = as.numeric(nan_20),
           densidad_aparente = as.numeric(densidad_aparente)
         )
       
-      factores_s <- c("soja" = 4.5, "trigo" = 3.2, "maiz" = 2.6, "girasol" = 6, "papa" = 0.45)
+      factores_s <- c("soja" = 3.5, "trigo" = 1.5, "maiz" = 1.2, "girasol" = 2.5, "papa" = 1.5)
       
       
       datos <- datos %>%
@@ -2107,18 +2148,18 @@ server <- function(input, output, session) {
       
       datos <- datos %>%
         mutate(
-          suma_nitratos = ((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * densidad_aparente),
+          suma_sulfato = ((s_sulfato_20 + s_sulfato_40 + s_sulfato_60) * densidad_aparente * 2),
           
           condiciones_cumplidas = case_when(
-            ((n_nitrato_20 * densidad_aparente) < 10 | (suma_nitratos * densidad_aparente) < 45) & 
-              ((input$zona_s == "Sudeste de Bs.As." & nan_20 < 50) | 
-                 (input$zona_s == "Otra" & nan_20 < 30)) ~ TRUE,
+            ((s_sulfato_20 * densidad_aparente * 2) < 10 | suma_sulfato < 45) & 
+              ((input$zona_s == "Sudeste de Bs.As." & nan_20 < 65) | 
+                 (input$zona_s == "Otra" & nan_20 < 40)) ~ TRUE,
             TRUE ~ FALSE
           ),
           
           dosis_s = ifelse(
             condiciones_cumplidas, 
-            rendimiento_objetivo * factor_s,
+            round(rendimiento_objetivo * factor_s, 0),
             "No se recomienda fertilizar con azufre"
           )
         ) %>%
@@ -2177,6 +2218,44 @@ server <- function(input, output, session) {
     )
     ######################## RECOMENDACIONES ############################
 
+    user_state <- reactiveValues(
+      datos_cargados = FALSE,       # Si se cargaron los datos (inicialmente FALSE)
+      nitrogeno_visitado = FALSE,   # Si se visitó Nitrógeno - Múltiples lotes
+      azufre_visitado = FALSE       # Si se visitó Azufre - Múltiples lotes
+    )
+    
+    # Observa si el usuario carga los datos
+    observeEvent(data_usuario(), {
+      user_state$datos_cargados <- !is.null(data_usuario())
+    })
+
+    # Rastrear la navegación entre pestañas
+    observeEvent(input$main_tabs, {
+      if (input$main_tabs == "seccion_nitrogeno") {
+        user_state$nitrogeno_visitado <- TRUE
+      }
+      if (input$main_tabs == "seccion_azufre") {
+        user_state$azufre_visitado <- TRUE
+      }
+    })
+    
+    # Renderiza los mensajes si no se cumplieron las condiciones
+    output$mensajes_informativos <- renderUI({
+      if (!user_state$datos_cargados ||
+          !user_state$nitrogeno_visitado ||
+          !user_state$azufre_visitado) {
+        tagList(
+          h4(HTML("Para obtener recomendaciones sobre la nutrición de sus cultivos:")),
+          h6(HTML("1º: Ingrese los datos solicitados en Carga de datos")),
+          h6(HTML("2º: Ingrese la zona geográfica en la sección Nitrógeno - Múltiples lotes")),
+          h6(HTML("3º: Ingrese la zona geográfica en la sección Azufre - Múltiples lotes"))
+        )
+      } else {
+        NULL
+      }
+    })
+    
+    
     resultados_total <- reactive({
 
       nitrogeno <- resultados_nitrogeno()
