@@ -1,0 +1,11 @@
+body {
+    background: url("imagen_fondo.png") no-repeat center center fixed;
+    background-size: cover;
+    opacity: 0.9; /* Ajusta la transparencia (1 = sin transparencia, 0 = completamente transparente) */
+}
+
+.tab-content {
+    background-color: rgba(255, 255, 255, 0.8); /* Fondo blanco semitransparente para las pestañas */
+    border-radius: 15px; /* Bordes redondeados */
+    padding: 20px;
+}
