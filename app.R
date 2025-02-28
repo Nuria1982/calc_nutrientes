@@ -724,7 +724,12 @@ ui <- fluidPage(
     tabPanel("Recomendaciones",
              br(),
              h2(HTML("<strong>Recomendaciones</strong>")),
-             uiOutput("mensajes_informativos"),
+             br(),
+             h4(HTML("Para obtener recomendaciones sobre la nutrición de sus cultivos:")),
+             h6(HTML("1º: Ingrese los datos solicitados en Carga de datos")),
+             h6(HTML("2º: Ingrese la zona geográfica en la sección Nitrógeno - Múltiples lotes")),
+             h6(HTML("3º: Ingrese la zona geográfica en la sección Azufre - Múltiples lotes")),
+             
              br(),
              div(style = "background-color: #DDB89240; padding: 15px; border-radius: 10px;",
                  
@@ -1819,16 +1824,16 @@ server <- function(input, output, session) {
         })
       ,
         mantener_P = round(rendimiento_objetivo * factor_mantener, 0),
-        construir_P = round(pmax(0, (nivel_p - p_bray_actual) * factores_construir), 0),
+        construir_P = round(pmax(0, (nivel_p - p_bray_actual) * factores_construir[cultivo]), 0),
       
-      mantener_P_antecesor = ifelse(
+      mantener_P_segunda = ifelse(
         !is.na(cultivo_segunda) & cultivo_segunda != "",
-        round(rendimiento_objetivo_cultivo_segunda * factores_mantener[tolower(cultivo_segunda)], 0),
+        round(rendimiento_objetivo_cultivo_segunda * factores_mantener[cultivo_segunda], 0),
         0
       ),
       
       # Suma de construir_P y construir_P_antecesor
-      mantener_P_total = mantener_P + mantener_P_antecesor,
+      mantener_P_total = mantener_P + mantener_P_segunda,
       dosisCyM = construir_P + mantener_P_total
       
       ) %>%
@@ -1838,7 +1843,7 @@ server <- function(input, output, session) {
     datos_resultado <- datos %>%
       select(
         lote, cultivo, cultivo_segunda, rendimiento_objetivo, dosis_suficiencia_min, dosis_suficiencia_max, 
-        construir_P, mantener_P, dosisCyM
+        construir_P,  mantener_P_total, dosisCyM
       ) %>%
       rename(Lote = lote,
              Cultivo = cultivo,
@@ -1847,7 +1852,7 @@ server <- function(input, output, session) {
              `Dosis minima de suficiencia (kg P / ha)` = dosis_suficiencia_min,
              `Dosis maxima de suficiencia (kg P / ha)` = dosis_suficiencia_max,
              `Dosis de construccion (kg P / ha)` = construir_P,
-             `Dosis de mantenimiento (kg P / ha)` = mantener_P,
+             `Dosis de mantenimiento (kg P / ha)` =  mantener_P_total,
              `Dosis de construccion y mantenimiento (kg P / ha)` = dosisCyM
       )
     return(datos_resultado)
@@ -2051,7 +2056,7 @@ server <- function(input, output, session) {
     })
     
     output$azufre_disp <- renderUI({
-      round(azufre_disp(), 2)
+      round(azufre_disp(), 0)
     })
     
     
@@ -2151,9 +2156,19 @@ server <- function(input, output, session) {
           suma_sulfato = ((s_sulfato_20 + s_sulfato_40 + s_sulfato_60) * densidad_aparente * 2),
           
           condiciones_cumplidas = case_when(
-            ((s_sulfato_20 * densidad_aparente * 2) < 10 | suma_sulfato < 45) & 
-              ((input$zona_s == "Sudeste de Bs.As." & nan_20 < 65) | 
-                 (input$zona_s == "Otra" & nan_20 < 40)) ~ TRUE,
+            # Evaluar condiciones para la zona "Sudeste de Bs.As."
+            input$zona_s == "Sudeste de Bs.As." & 
+              (s_sulfato_20 * densidad_aparente * 2 < 10) & 
+              (suma_sulfato < 45) & 
+              (nan_20 < 65) ~ TRUE,
+            
+            # Evaluar condiciones para la zona "Otra"
+            input$zona_s == "Otra" & 
+              (s_sulfato_20 * densidad_aparente * 2 < 10) & 
+              (suma_sulfato < 45) & 
+              (nan_20 < 40) ~ TRUE,
+            
+            # Si no se cumplen las condiciones
             TRUE ~ FALSE
           ),
           
@@ -2217,44 +2232,6 @@ server <- function(input, output, session) {
       }
     )
     ######################## RECOMENDACIONES ############################
-
-    user_state <- reactiveValues(
-      datos_cargados = FALSE,       # Si se cargaron los datos (inicialmente FALSE)
-      nitrogeno_visitado = FALSE,   # Si se visitó Nitrógeno - Múltiples lotes
-      azufre_visitado = FALSE       # Si se visitó Azufre - Múltiples lotes
-    )
-    
-    # Observa si el usuario carga los datos
-    observeEvent(data_usuario(), {
-      user_state$datos_cargados <- !is.null(data_usuario())
-    })
-
-    # Rastrear la navegación entre pestañas
-    observeEvent(input$main_tabs, {
-      if (input$main_tabs == "seccion_nitrogeno") {
-        user_state$nitrogeno_visitado <- TRUE
-      }
-      if (input$main_tabs == "seccion_azufre") {
-        user_state$azufre_visitado <- TRUE
-      }
-    })
-    
-    # Renderiza los mensajes si no se cumplieron las condiciones
-    output$mensajes_informativos <- renderUI({
-      if (!user_state$datos_cargados ||
-          !user_state$nitrogeno_visitado ||
-          !user_state$azufre_visitado) {
-        tagList(
-          h4(HTML("Para obtener recomendaciones sobre la nutrición de sus cultivos:")),
-          h6(HTML("1º: Ingrese los datos solicitados en Carga de datos")),
-          h6(HTML("2º: Ingrese la zona geográfica en la sección Nitrógeno - Múltiples lotes")),
-          h6(HTML("3º: Ingrese la zona geográfica en la sección Azufre - Múltiples lotes"))
-        )
-      } else {
-        NULL
-      }
-    })
-    
     
     resultados_total <- reactive({
 
