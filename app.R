@@ -257,7 +257,7 @@ ui <- fluidPage(
                      Relación Suelo - Cultivo de la Unidad Integrada Balcarce, los cuales presentan una amplia 
                      trayectoria en investigación, docencia y transferencia en temas de fertilidad de suelos y 
                      nutrición de cultivos. Además, el grupo es responsable del Laboratorio de Suelo de INTA Balcarce 
-                     (link a servicios) que hace más de 30 años brinda no solo servicios de análisis de suelo y 
+                     (<a href='https://www.instagram.com/labsuelobalcarce/' target='_blank'>labsuelobalcarce</a>) que hace más de 30 años brinda no solo servicios de análisis de suelo y 
                      planta sino también actividades como experimentación a campo, asesoramiento en fertilidad de suelos, 
                      charlas técnicas, jornadas y cursos de actualización profesional.")),
              br(),
@@ -338,13 +338,13 @@ ui <- fluidPage(
                                        column(4,
                                               numericInput("nitrato_20",  
                                                            label = strong(HTML("N-nitrato (ppm) (0-20cm)")),
-                                                           value = 0),
+                                                           value = 1),
                                               numericInput("nitrato_40",  
                                                            label = strong(HTML("N-nitrato (ppm) (20-40cm)")),
-                                                           value = 0),
+                                                           value = 1),
                                               numericInput("nitrato_60",  
                                                            label = strong(HTML("N-nitrato (ppm) (40-60cm)")),
-                                                           value = 0),
+                                                           value = 1),
                                               numericInput("dens_ap",  
                                                            label = strong(HTML("Densidad aparente (g / cm3)")), 
                                                            value = 1.2)
@@ -873,11 +873,11 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # Crear un dataframe modelo
-      modelo <- data.frame(
+      datos <- data.frame(
         Lote = c(1, 1, 1, 2, 2, 2), 
         Cultivo = c("maiz", "maiz", "maiz", "trigo", "trigo", "trigo"),
         Rendimiento_objetivo = c(NA, NA, NA, NA, NA, NA), 
-        Cultivo_segunda = c("", "", "", "soja", "soja", "soja"),
+        Cultivo_segunda = c(NA, NA, NA, "soja", NA, NA),
         Rendimiento_objetivo_cultivo_segunda = c(NA, NA, NA, NA, NA, NA), 
         Efecto_antecesor = c(NA, NA, NA, NA, NA, NA),
         Proteina_objetivo = c(NA, NA, NA, NA, NA, NA),
@@ -904,11 +904,12 @@ server <- function(input, output, session) {
       
       # Crear la tercera hoja: aclaraciones
       aclaraciones <- data.frame(
-        Campo = c("Lote", "Cultivo", "Rendimiento_objetivo"),
+        Campo = c("Lote", "Cultivo", "Rendimiento_objetivo", "N_nitrato"),
         Detalle = c(
           "Identificación del lote (nombre o código)",
           "Cultivo actual sembrado en el lote",
-          "Rendimiento objetivo esperado del cultivo"
+          "Rendimiento objetivo esperado del cultivo",
+          "Para calcular la oferta y dosis de N, debe ingresar los valores de N_nitrato de las 3 profundidades"
         )
       )
       
@@ -917,15 +918,29 @@ server <- function(input, output, session) {
       wb <- createWorkbook()
       
       # Agregar hojas al archivo
-      addWorksheet(wb, "Modelo")
-      addWorksheet(wb, "Unidades")
       addWorksheet(wb, "Aclaraciones")
+      addWorksheet(wb, "Datos")
+      addWorksheet(wb, "Unidades")
+      
+      
+      aclaracion_celdas <- data.frame(
+        Aclaracion = c("Solo se deben completar las celdas en color gris.")
+      )
+      
+      aclaracion_nitrato <- data.frame(
+        N_nitrato = c("Para calcular la oferta y dosis de N, debe ingresar los valores de N_nitrato de las 3 profundidades")
+      )
       
       # Escribir los datos en las hojas
-      writeData(wb, "Modelo", modelo)
+      writeData(wb, "Datos", datos)
+      
       writeData(wb, "Unidades", unidades)
       writeData(wb, "Aclaraciones", aclaraciones)
 
+      
+       writeData(wb, "Aclaraciones", aclaracion_celdas, startRow = nrow(aclaraciones) + 3, startCol = 1)
+      # writeData(wb, "Datos", aclaracion_nitrato, startRow = nrow(datos) + 5, startCol = 1)
+      
       estilo_general1 <- createStyle(fgFill = "gray90",
                                      textDecoration = "bold",
                                      border = "Bottom",
@@ -943,12 +958,18 @@ server <- function(input, output, session) {
       estilo_general4 <- createStyle(fgFill = "gray90")
       estilo_general5 <- createStyle(border = "Bottom",
                                      fgFill = "gray90")
+      estilo_aclaracion <- createStyle(textDecoration = c("bold", "italic"),
+                                       fontSize = 16)
+
      
-      addStyle(wb, "Modelo", style = estilo_general1, rows = 1, cols = c(1:16), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general2, rows = c(2, 5), cols = c(1:16), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general5, rows = c(4, 7), cols = c(8,12,13), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general4, rows = c(3, 6), cols = c(8,12,13), gridExpand = TRUE)
-      addStyle(wb, "Modelo", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:11, 14:16), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:16), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general2, rows = c(2, 5), cols = c(1:16), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8,12,13), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8,12,13), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:11, 14:16), gridExpand = TRUE)
+      addStyle(wb, "Aclaraciones", style = estilo_aclaracion, rows = nrow(aclaraciones) + 3, cols = 1, gridExpand = TRUE)
+      # addStyle(wb, "Datos", style = estilo_aclaracion, rows = nrow(datos) + 5, cols = 1, gridExpand = TRUE)
+      
       
       
       
@@ -958,11 +979,13 @@ server <- function(input, output, session) {
       addStyle(wb, "Aclaraciones", style = estilo_negrita, rows = 1, cols = 1:ncol(aclaraciones), gridExpand = TRUE)
       
       # Auto ajuste del tamaño de las columnas
-      # setColWidths(wb, "Modelo", cols = 1:ncol(modelo), widths = "auto")
+      # setColWidths(wb, "Datos", cols = 1:ncol(datos), widths = "auto")
       setColWidths(wb, "Unidades", cols = 1:ncol(unidades), widths = "auto")
       setColWidths(wb, "Aclaraciones", cols = 1:ncol(aclaraciones), widths = "auto")
       
       saveWorkbook(wb, file, overwrite = TRUE)
+      
+      
     }
   )
   
@@ -978,7 +1001,7 @@ server <- function(input, output, session) {
     if (ext == "csv") {
       data <- read.csv(input$archivo_usuario$datapath)
     } else if (ext == "xlsx") {
-      data <- readxl::read_xlsx(input$archivo_usuario$datapath)
+      data <- readxl::read_xlsx(input$archivo_usuario$datapath, sheet = "Datos")
     } else {
       showNotification("Formato de archivo no soportado.", type = "error")
       return(NULL)
@@ -1004,7 +1027,9 @@ server <- function(input, output, session) {
     data$cultivo <- tolower(data$cultivo)
     data$cultivo_segunda <- tolower(data$cultivo_segunda)
     
-    
+
+    data <- data %>%
+      tidyr::fill(lote, cultivo, .direction = "down")
     
     data <- data %>%
       mutate(
@@ -1014,7 +1039,7 @@ server <- function(input, output, session) {
         s_sulfato_20 = ifelse(estrato == "0-20", s_sulfato, 0),
         s_sulfato_40 = ifelse(estrato == "20-40", s_sulfato, 0),
         s_sulfato_60 = ifelse(estrato == "40-60", s_sulfato, 0)
-      )
+      ) 
     
     
     data <- data %>%
@@ -1027,9 +1052,9 @@ server <- function(input, output, session) {
         proteina_objetivo = first(proteina_objetivo),
         nan_20 = first(nan_20),
         densidad_aparente = first(densidad_aparente),
-        n_nitrato_20 = max(n_nitrato_20, na.rm = TRUE),
-        n_nitrato_40 = max(n_nitrato_40, na.rm = TRUE),
-        n_nitrato_60 = max(n_nitrato_60, na.rm = TRUE),
+        n_nitrato_20 = max(n_nitrato_20),
+        n_nitrato_40 = max(n_nitrato_40),
+        n_nitrato_60 = max(n_nitrato_60),
         s_sulfato_20 = max(s_sulfato_20, na.rm = TRUE),
         s_sulfato_40 = max(s_sulfato_40, na.rm = TRUE),
         s_sulfato_60 = max(s_sulfato_60, na.rm = TRUE),
@@ -1056,9 +1081,14 @@ server <- function(input, output, session) {
     data <- data %>%
       mutate(across(where(is.character), ~ ifelse(is.na(.), "", .)))
     
+    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60")
     # Reemplazar valores vacíos (NA) con 0 en todas las columnas
-    data[is.na(data)] <- 0
-    
+    data <- data %>%
+      mutate(across(
+        .cols = -all_of(excluir_columnas), # Selecciona todas las columnas excepto las excluidas
+        .fns = ~ ifelse(is.na(.), 0, .)   # Reemplaza NA por 0
+      ))
+   
     # Confirmar al usuario que el archivo se ha procesado correctamente
     showNotification("Archivo subido correctamente.", type = "message")
     
@@ -1142,15 +1172,25 @@ server <- function(input, output, session) {
   #OFERTA
   nitrogeno_disp <- reactive({
     densidad_aparente <- ifelse(!is.null(input$dens_ap) && input$dens_ap != 0, input$dens_ap, 1.2)
-    if (!is.null(input$nitrato) && input$nitrato > 0) {
-      input$nitrato * densidad_aparente * 6
-    } else {
+    
+    if (!is.na(input$nitrato_20) && !is.na(input$nitrato_40) && !is.na(input$nitrato_60) &&
+        !is.null(input$nitrato_20) && !is.null(input$nitrato_40) && !is.null(input$nitrato_60)) {
       (input$nitrato_20 + input$nitrato_40 + input$nitrato_60) * (densidad_aparente * 2)
+    } else {
+      NULL  # Retorna NULL si hay valores faltantes
     }
   })
   
   output$nitrogeno_disp <- renderUI({
-    round(nitrogeno_disp(), 2)
+    valor_nitrogeno <- nitrogeno_disp()  # Almacenar el valor reactivo
+    
+    if (is.null(valor_nitrogeno)) {
+      # Mostrar mensaje de error en rojo si no hay datos suficientes
+      div(style = "color: red;", "Para calcular la oferta de N debe ingresar los datos de N_nitrato (0-20, 20-40, 40-60).")
+    } else {
+      # Mostrar el resultado redondeado
+      round(valor_nitrogeno, 0)
+    }
   })
   
   output$zonas_ui <- renderUI({
@@ -1345,14 +1385,11 @@ server <- function(input, output, session) {
     datos$n_nitrato_60 <- as.numeric(datos$n_nitrato_60)
     datos$nan_20 <- as.numeric(datos$nan_20)
     datos$densidad_aparente <- as.numeric(datos$densidad_aparente)
-    
+
     zona_maiz <- input$zona_multi_maiz
     
     datos <- datos %>%
       mutate(
-        N_disponible = round(((n_nitrato_20 +
-                           n_nitrato_40 +
-                           n_nitrato_60) * densidad_aparente * 2), 0),
         Mineralizacion = case_when(
           cultivo == "maiz" & zona_maiz == "Sudeste siembra temprana" ~ 3.2,
           cultivo == "maiz" & zona_maiz == "Nucleo siembra temprana" ~ 3.6,
@@ -1366,10 +1403,20 @@ server <- function(input, output, session) {
         Nan_total = ifelse(nan_20 > 0, nan_20 * Mineralizacion, 0)
       )
     
+    datos <- datos %>%
+      group_by(lote) %>%
+      mutate(
+        N_disponible = ifelse(
+          !is.na(n_nitrato_20) & !is.na(n_nitrato_40) & !is.na(n_nitrato_60),
+          (n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente,
+          NA_real_  # Si alguno de ellos es NA, asigna NA
+        )
+      ) 
+      
     req_sistema <- c(maiz = 30, trigo = 50, girasol = 60, papa = 6)
     req_planta <- c(maiz = 20, trigo = 30, girasol = 40, papa = 4)
     
-    
+
     # Calcular Oferta, Demanda y DosisN por Lote
     datos <- datos %>%
       mutate(
@@ -1390,10 +1437,26 @@ server <- function(input, output, session) {
           ),
           TRUE ~ 0
         ),
-        OfertaN = N_disponible + coalesce(Nan_total, 0) + coalesce(efecto_antecesor, 0),
+        OfertaN = ifelse(
+          is.na(N_disponible),  
+          NA,  
+          N_disponible + coalesce(Nan_total, 0) + coalesce(efecto_antecesor, 0)
+        ),
         DemandaN = rendimiento_objetivo * Requerimiento,
-        DosisN = DemandaN - OfertaN
+        DosisN = ifelse(
+          !is.na(OfertaN),
+          DemandaN - OfertaN,
+          NA_real_
+        )
       )
+
+    datos <- datos %>%
+      mutate(
+        N_disponible = ifelse(is.na(N_disponible), "*", as.character(N_disponible)),
+        OfertaN = ifelse(is.na(OfertaN), "*", as.character(OfertaN)),
+        DosisN = ifelse(is.na(DosisN), "*", as.character(DosisN))
+      )
+    
     
     # Seleccionar columnas relevantes
     datos_resultado <- datos %>%
@@ -1414,6 +1477,7 @@ server <- function(input, output, session) {
   # Renderiza la tabla con resultados
   output$tabla_nitrogeno <- renderUI({
     data <- resultados_nitrogeno()
+    
     
     # Crea tabla HTML con estilos específicos para cada columnas
     tabla_html <- paste0(
@@ -1444,7 +1508,11 @@ server <- function(input, output, session) {
       "</tbody></table>"
     )
     
-    HTML(tabla_html)
+    # Agregar la aclaración debajo de la tabla
+    aclaracion_html <- "<p style='color: red;'>* Los valores de N disponible, Oferta y 
+    Dosis no fueron calculados debido a la falta de datos de nitratos (0-20, 20-40, o 40-60).</p>"
+    
+    HTML(paste0(tabla_html, aclaracion_html))
   })
   
   output$descarga_N <- downloadHandler(
@@ -1453,6 +1521,9 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       write.csv(resultados_nitrogeno(), file, row.names = FALSE)  
+      
+      write("\n* Los valores de N disponible, Oferta y Dosis no fueron calculados debido a la falta de datos de nitratos (0-20, 20-40, o 40-60).", 
+          file, append = TRUE)
     }
   )
   
@@ -1467,8 +1538,15 @@ server <- function(input, output, session) {
     datos <- datos %>%
       arrange(Lote_num)
     
+    datos <- datos %>%
+      mutate(`Dosis N (kg N / ha)` = as.numeric(ifelse(`Dosis N (kg N / ha)` == "*", NA, `Dosis N (kg N / ha)`)))
+    
     datos_dosis <- datos %>%
+      filter(!is.na(`Dosis N (kg N / ha)`)) %>%
       select(Lote, Cultivo, `Dosis N (kg N / ha)`, Titulo) 
+    
+    max_dosis <- max(datos_dosis$`Dosis N (kg N / ha)`, na.rm = TRUE)
+    
     
     ggplot(datos_dosis,  aes(x = factor(Titulo, levels = unique(Titulo)), y = `Dosis N (kg N / ha)`, fill = "#C52233", color = "#C52233" )) +
       geom_bar(stat = "identity", position = position_dodge(width = 0.5), 
@@ -1493,7 +1571,7 @@ server <- function(input, output, session) {
         legend.position = "none",  
         strip.text = element_text(face = "bold", size = 16)  
       ) +
-      scale_y_continuous(limits = c(0, max(datos_dosis$`Dosis N (kg N / ha)` + 20, na.rm = TRUE)))
+      scale_y_continuous(limits = c(0, max_dosis + 20))
   }
   
   output$multi_lotes_N <- renderPlot({
@@ -2047,7 +2125,7 @@ server <- function(input, output, session) {
     })
     
     azufre_disp <- reactive({
-      densidad_aparente <- ifelse(!is.null(input$dens_ap) && input$dens_ap != 0, input$dens_ap, 1.2)
+      densidad_aparente <- ifelse(!is.null(input$dens_ap_s) && input$dens_ap_s != 0, input$dens_ap_s, 1.2)
       if (!is.null(input$azufre) && input$azufre > 0) {
         input$azufre * densidad_aparente * 2
       } else {
@@ -2158,13 +2236,13 @@ server <- function(input, output, session) {
           condiciones_cumplidas = case_when(
             # Evaluar condiciones para la zona "Sudeste de Bs.As."
             input$zona_s == "Sudeste de Bs.As." & 
-              (s_sulfato_20 * densidad_aparente * 2 < 10) & 
+              (s_sulfato_20 < 10) & 
               (suma_sulfato < 45) & 
               (nan_20 < 65) ~ TRUE,
             
             # Evaluar condiciones para la zona "Otra"
             input$zona_s == "Otra" & 
-              (s_sulfato_20 * densidad_aparente * 2 < 10) & 
+              (s_sulfato_20 < 10) & 
               (suma_sulfato < 45) & 
               (nan_20 < 40) ~ TRUE,
             
