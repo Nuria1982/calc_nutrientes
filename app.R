@@ -1261,7 +1261,7 @@ server <- function(input, output, session) {
       "Instrucciones_nutrición_cultivos.pdf"  
     },
     content = function(file) {
-      file.copy("dosis_fosfato.pdf", file)
+      file.copy("www/Instrucciones_nutrición_cultivos.pdf", file)
     }
   )
   
