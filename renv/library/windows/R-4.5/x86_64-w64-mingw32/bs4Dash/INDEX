@@ -1,0 +1,63 @@
+actionButton            Bootstrap 4 Action button/link
+appButton               AdminLTE2 special large button
+attachmentBlock         AdminLTE3 attachment container
+bs4Accordion            Bootstrap 4 accordion container
+bs4Badge                Create a Bootstrap 4 dashboard badge item
+bs4Callout              Create a Bootstrap 4 callout
+bs4CardLabel            Create a label for Boostrap 4 card
+bs4CardLayout           Bootstrap 4 container for cards
+bs4CardSidebar          Create a sidebar for Boostrap 4 card
+bs4Carousel             Bootstrap 4 carousel
+bs4DashBody             Boostrap 4 dashboard body
+bs4DashBrand            Alternative to simple text title
+bs4DashControlbar       Create a Boostrap 4 dashboard right sidebar
+bs4DashFooter           Dashboard Footer
+bs4DashGallery          Launch the bs4Dash Gallery
+bs4DashNavbar           Boostrap 4 dashboard navbar
+bs4DashPage             Create a Boostrap 4 dashboard page
+bs4DashSidebar          Create a Boostrap 4 dashboard main sidebar
+bs4DropdownMenu         Boostrap 4 dashboard dropdown menu
+bs4Jumbotron            BS4 jumbotron for AdminLTE3
+bs4ListGroup            BS4 list group for AdminLTE3
+bs4Loading              AdminLTE3 loading state element
+bs4ProgressBar          AdminLTE3 progress bar
+bs4Quote                Boostrap 4 block quote
+bs4Ribbon               Boostrap 4 ribbon
+bs4SocialCard           AdminLTE3 social card
+bs4Sortable             BS4 sortable section
+bs4Stars                AdminLTE3 stars
+bs4TabCard              Create a Boostrap 4 tabCard
+bs4Timeline             AdminLTE3 timeline block
+bs4UserCard             AdminLTE3 widget user card
+bs4UserMenu             Bootstrap 4 user profile.
+cardDropdown            Create a box dropdown item list
+cardProfile             AdminLTE3 card profile
+column                  Boostrap 4 column system
+createAlert             Create a Bootstrap 4 alert on the server side
+descriptionBlock        AdminLTE3 description block
+dropdownDivider         Create a box dropdown divider
+dropdownHeader          Dropdown header helper
+dropdownMenuOutput      Create a dropdown menu output (client side)
+getAdminLTEColors       Get all AdminLTE colors.
+insertTab               Insert a tabPanel in a tabsetPanel
+ionicon                 BS4 ionicons
+menuItemOutput          Create a sidebar menu item output (client side)
+menuOutput              Create a dynamic menu output for bs4Dash
+                        (client side)
+navbarTab               Navbar tab item
+pagination              Bootstrap 4 pagination widget
+popover                 Create a Bootstrap 4 popover from the UI side
+productList             AdminLTE3 product list container
+renderMenu              Create dynamic menu output (server side)
+renderbs4InfoBox        Boostrap 4 info box
+renderbs4ValueBox       Create a value box (server side)
+sidebarMenuOutput       Create a sidebar menu output (client side)
+skinSelector            AdminLTE3 skin selector
+tabsetPanel             Create a tabsetPanel
+toast                   Create an adminLTE toast
+tooltip                 Create a Bootstrap 4 Tooltip from the UI side
+useAutoColor            Plot auto-color module
+userList                AdminLTE3 user list container
+userMessages            AdminLTE3 user message container
+userPost                AdminLTE3 user post
+userPostMedia           AdminLTE3 user post media

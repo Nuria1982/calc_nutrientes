@@ -1,0 +1,7 @@
+login                   login server module (deprecated)
+loginServer             login server module
+loginUI                 login UI module
+logout                  logout server module (deprecated)
+logoutServer            logout server module
+logoutUI                logout UI module
+runExample              Run shinyauthr examples

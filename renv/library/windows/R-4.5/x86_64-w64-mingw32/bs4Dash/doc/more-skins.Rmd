@@ -1,0 +1,56 @@
+---
+title: "Improved Skins"
+author: "David Granjon"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Improved Skins}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+library(shiny)
+library(bslib)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## A Real Time Skin Selector
+
+`{bs4Dash}` has a new feature called the `skinSelector()`. This is a JavaScript based widget 
+allowing the end user to change the app skin. There are 20 unique colors with 2 versions, light or dark. 
+Note that the `dashboardControlbar()` is the perfect place to host the `skinSelector()`.
+
+```{r skinSelector-code, eval=TRUE, echo=FALSE}
+card(
+  bs4Dash:::create_link_iframe(bs4Dash:::shinylive_links["inst/examples/vignettes-demos/skinSelector"]),
+  full_screen = TRUE,
+  style = "margin: 0 auto; float: none;"
+)
+```
+
+## Fresh
+[`{fresh}`](https://dreamrs.github.io/fresh/index.html) is developed by the 
+[dreamRs](https://www.dreamrs.fr/) team. It is built on top of `{sass}`, which 
+provides a solid R [API](https://github.com/rstudio/sass) to write SASS variables and compile 
+into CSS. `{fresh}` captures most of the AdminLTE2 (as well as AdminLTE3 for Bootstrap 4) SASS 
+variables to allow deep customization, hiding all the compilation burden under the hood.
+
+`bs4dash_color()` and `bs4Dash_status()` provide an interface to all available AdminLTE colors and 
+allow to overwrite the default. 
+I strongly suggest to avoid setting the default green to blue, as it might become confusing. 
+Instead, it is better to play with color palettes. `bs4dash_sidebar_light()` allows to re-style 
+the sidebar component, `bs4dash_layout()` controls the main background color, `bs4dash_yiq()` fine tune the global
+contrast and `bs4dash_vars()` offers deeper customization (navbar, ...). 
+The fresh theme below is based on some dark theme color palettes. 
+
+```{r fresh-code, eval=TRUE, echo=FALSE}
+card(
+  bs4Dash:::create_link_iframe(bs4Dash:::shinylive_links["inst/examples/vignettes-demos/fresh-theming"]),
+  full_screen = TRUE,
+  style = "margin: 0 auto; float: none;"
+)
+```

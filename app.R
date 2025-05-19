@@ -2994,11 +2994,14 @@ server <- function(input, output, session) {
 shinyApp(ui, server )
 
 # rsconnect::forgetDeployment("I:/TRABAJO/CERBAS/Proyectos/Web_fertilizar/fertilizar")
+# rsconnect::deployApp()
 # renv::init()
 # renv::restore()
-# renv::snapshot()
+# renv::snapshot() #para capturar todas las dependencias 
 
-# rsconnect::setAccountInfo(name='intabalcarce',
+# renv::status() #para ver si hay paquetes no instalados
+
+ # rsconnect::setAccountInfo(name='intabalcarce',
 #                            token='C0EB33DC639D60FE1930A4CA5CC8141F',
 #                            secret='xQn4aq7hXde1aFaoEpJM5BzIoBEKHw247ACHktKH')
 

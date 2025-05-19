@@ -1,0 +1,10 @@
+name: calc_nutrientes
+title: calc_nutrientes
+username: intabalcarce
+account: intabalcarce
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14781959
+bundleId: 10306848
+url: https://intabalcarce.shinyapps.io/calc_nutrientes/
+version: 1

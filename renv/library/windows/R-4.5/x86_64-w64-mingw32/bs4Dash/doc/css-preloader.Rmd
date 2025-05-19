@@ -1,0 +1,33 @@
+---
+title: "CSS preloaders"
+author: "David Granjon"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CSS preloaders}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(bslib)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## How to set up a preloader?
+
+Pass the argument `preloader` to the `dashboardPage()` function. It expects a list containing all parameters necessary to `waiter::waiterShowOnLoad`. The duration is automatically handled by listening to the `shiny:idle` [event](https://shiny.rstudio.com/articles/js-events.html). Please have a look to the 
+`{waiter}` [documentation](https://waiter.john-coene.com/) for more details.
+
+That's all!
+
+```{r waiter-code, eval=TRUE, echo=FALSE}
+card(
+  bs4Dash:::create_link_iframe(bs4Dash:::shinylive_links["inst/examples/vignettes-demos/preloader"]),
+  full_screen = TRUE,
+  style = "margin: 0 auto; float: none;"
+)
+```

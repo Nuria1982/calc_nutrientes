@@ -1,0 +1,74 @@
+---
+title: "Extra Elements"
+author: "David Granjon"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Extra Elements}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+library(bslib)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Accordion
+Accordions are a category of collapsible elements. While collapsible items do not 
+alter the state of other items in the same collapsible container, each accordion item will 
+toggle any other opened accordion, to ensure that only 1 item is visible at once. `accordion()` 
+expects to contain `accordionItems()`. Importantly, to guaranty the uniqueness of each accordion, 
+we must provide an __id__ parameter. This parameter allows to programmatically toggle any accordion item, 
+through an `updateAccordion()` function.
+
+```{r accordions-code, eval=TRUE, echo=FALSE}
+card(
+  bs4Dash:::create_link_iframe(bs4Dash:::shinylive_links["inst/examples/vignettes-demos/accordions"]),
+  full_screen = TRUE,
+  style = "margin: 0 auto; float: none;"
+)
+```
+
+## User messages
+`{bs4Dash}` make it possible to create an entire chat system within a Shiny app. `userMessages()` 
+is the main container, `userMessage()` being the message element. `updateUserMessages()` 
+looks for the `userMessages()` __id__ so as to:
+
+- Remove an existing message.
+- Add a new message.
+- Edit an existing message.
+
+Importantly, we assume that a message structure is composed as follows:
+
+```{r message-code, eval=FALSE}
+list(
+  author = "David",
+  date = "Now",
+  image = "https://i.pinimg.com/originals/f1/15/df/f115dfc9cab063597b1221d015996b39.jpg",
+  type = "received",
+  text = tagList(
+    sliderInput(
+      "obs", 
+      "Number of observations:",
+      min = 0, 
+      max = 1000, 
+      value = 500
+    ),
+    plotOutput("distPlot")
+  )
+```
+
+The __type__ parameter controls the message background color. For a sent message, 
+the color is inherited from the `userMessages()` status, while for a received message, 
+the color is gray by default. The __text__ argument refers to the message content. It may be simple text, 
+shiny tags or event any combinations of shiny inputs/ouput, as shown in the below example.
+
+```{r chat-code, eval=TRUE, echo=FALSE}
+card(
+  bs4Dash:::create_link_iframe(bs4Dash:::shinylive_links["inst/examples/vignettes-demos/userMessages"]),
+  full_screen = TRUE,
+  style = "margin: 0 auto; float: none;"
+)
+```
