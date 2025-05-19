@@ -359,7 +359,7 @@ ui <- fluidPage(
                                                            label = strong(HTML("N-nitrato (ppm) (40-60cm)")),
                                                            value = 1),
                                               numericInput("dens_ap",  
-                                                           label = strong(HTML("Densidad aparente (g / cm3)")), 
+                                                           label = strong(HTML("Densidad aparente (g / cm<sup>3</sup>)")), 
                                                            value = 1.2)
                                        ),
                                        column(4,
@@ -562,7 +562,7 @@ ui <- fluidPage(
                                                 condition = "input.cultivoP == 'doble_cultivo'",
                                                 h5(strong("Mantenimiento")),
                                                 numericInput("rendimiento_P_2",  
-                                                             label = strong(HTML("Rendimiento objetivo del cultivo 2º(t/ha)")),
+                                                             label = strong(HTML("Rendimiento objetivo del cultivo 2º (t/ha)")),
                                                              value = 1
                                                 ),
                                                 numericInput("factor_mantenimiento_2",  
@@ -646,7 +646,7 @@ ui <- fluidPage(
                                                            label = strong(HTML("S-sulfato (ppm) (40-60cm)")),
                                                            value = 0),
                                               numericInput("dens_ap_s",  
-                                                           label = strong(HTML("Densidad aparente (g / cm3)")), 
+                                                           label = strong(HTML("Densidad aparente (g / cm<sup>3</sup>)")), 
                                                            value = 1.2),
                                               fluidRow(
                                                 column(12, 
