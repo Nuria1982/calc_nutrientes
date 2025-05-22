@@ -268,6 +268,16 @@ ui <- fluidPage(
                tags$img(src = "Imagen1.jpg", width = "50%", alt = "integrantes")
              ),
              br(),
+             br(),
+             
+             div(
+               style = "display: flex; justify-content: center; align-items: center; gap: 80px;",
+               tags$img(src = "Logo_suelo_cultivo.png", width = "10%", alt = "Grupo_Suelo_Cultivo"),
+               tags$img(src = "logoFCA2.png", width = "10%", alt = "FCA"),
+               tags$img(src = "IPADS.png", width = "10%", alt = "IPADS")
+             ),
+             br(),
+             
              h6(HTML("Desarrollada por <a href='https://github.com/Nuria1982' target='_blank'>Nuria Lewczuk</a>
                       <br>Chang et al. (2021). <em>shiny: Web Application Framework for R</em>. R package version 1.7.1, 
                       <a href='https://cran.r-project.org/web/packages/shiny/index.html' 
@@ -1213,9 +1223,9 @@ server <- function(input, output, session) {
         n_nitrato_20 = max(n_nitrato_20),
         n_nitrato_40 = max(n_nitrato_40),
         n_nitrato_60 = max(n_nitrato_60),
-        s_sulfato_20 = max(s_sulfato_20, na.rm = TRUE),
-        s_sulfato_40 = max(s_sulfato_40, na.rm = TRUE),
-        s_sulfato_60 = max(s_sulfato_60, na.rm = TRUE),
+        s_sulfato_20 = max(s_sulfato_20),
+        s_sulfato_40 = max(s_sulfato_40),
+        s_sulfato_60 = max(s_sulfato_60),
         p_bray_actual = first(p_bray_actual),
         zn_dtpa = first(zn_dtpa),
         nivelp_objetivo = first(nivelp_objetivo),
@@ -1241,7 +1251,7 @@ server <- function(input, output, session) {
     data <- data %>%
       mutate(across(where(is.character), ~ ifelse(is.na(.), "", .)))
     
-    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa")
+    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa", "p_bray_actual", "s_sulfato_20", "s_sulfato_40", "s_sulfato_60")
     # Reemplazar valores vacíos (NA) con 0 en todas las columnas
     data <- data %>%
       mutate(across(
@@ -1540,9 +1550,13 @@ server <- function(input, output, session) {
   
   resultados_nitrogeno <- reactive({
     req(data_usuario())
-    req(input$zona_multi_maiz)
+    #req(input$zona_multi_maiz)
     
     datos <- data_usuario()
+    
+    if (nrow(datos) == 0) {
+      return(NULL)  # Detenemos la ejecución si no hay datos
+    }
     
     datos$cultivo <- trimws(datos$cultivo)
     
@@ -1568,7 +1582,7 @@ server <- function(input, output, session) {
           cultivo == "trigo" ~ 2.2,
           cultivo == "girasol" ~ 0,
           cultivo == "papa" ~ 3.2,
-          TRUE ~ 0 
+          TRUE ~ NA_real_  
         ),
         Nan_total = ifelse(nan > 0, nan * Mineralizacion, NA)
       )
@@ -2072,41 +2086,64 @@ server <- function(input, output, session) {
     datos <- datos %>%
       mutate(
         filtro_rango = map2(cultivo, p_bray_actual, ~ {
-          result <- dosis_data %>% filter(cultivoP == .x, .y >= P_min, .y < P_max)
-          result
-        }),
-        dosis_suficiencia_min = map_dbl(filtro_rango, ~ {
-          if (!is.null(.x) && nrow(.x) > 0) {
-            min(.x$min_dosis, na.rm = TRUE)
+          if (!is.na(.y)) {
+            result <- dosis_data %>% filter(cultivoP == .x, .y >= P_min, .y < P_max)
+            result
           } else {
-            print("Dosis mínima no encontrada")
-            NA_real_
+            NULL
           }
         }),
-        dosis_suficiencia_max = map_dbl(filtro_rango, ~ {
-          if (!is.null(.x) && nrow(.x) > 0) {
-            max(.x$max_dosis, na.rm = TRUE)
-          } else {
-            print("Dosis máxima no encontrada")
-            NA_real_
-          }
-        })
-      ,
+        dosis_suficiencia_min = if ("p_bray_actual" %in% colnames(datos)) {
+          map_chr(filtro_rango, ~ {
+            if (!is.null(.x) && nrow(.x) > 0) {
+              as.character(min(.x$min_dosis, na.rm = TRUE))  # Convertir a carácter
+            } else {
+              "-"
+            }
+          })
+        } else {
+          "-"
+        },
+        dosis_suficiencia_max = if ("p_bray_actual" %in% colnames(datos)) {
+          map_chr(filtro_rango, ~ {
+            if (!is.null(.x) && nrow(.x) > 0) {
+              as.character(max(.x$max_dosis, na.rm = TRUE))  # Convertir a carácter
+            } else {
+              "-"
+            }
+          })
+        } else {
+          "-"
+        },
+        
+        construir_P = if ("p_bray_actual" %in% colnames(datos)) {
+          if_else(
+            !is.na(p_bray_actual),
+            as.character(round(pmax(0, (nivel_p - p_bray_actual) * factores_construir[cultivo]), 0)),  # Convertir a carácter
+            "-"
+          )
+        } else {
+          "-"
+        },
+        
         mantener_P = round(rendimiento_objetivo * factor_mantener, 0),
-        construir_P = round(pmax(0, (nivel_p - p_bray_actual) * factores_construir[cultivo]), 0),
-      
-      mantener_P_segunda = ifelse(
-        !is.na(cultivo_segunda) & cultivo_segunda != "",
-        round(rendimiento_objetivo_cultivo_segunda * factores_mantener[cultivo_segunda], 0),
-        0
-      ),
-      
-      # Suma de construir_P y construir_P_antecesor
-      mantener_P_total = mantener_P + mantener_P_segunda,
-      dosisCyM = construir_P + mantener_P_total
-      
+        
+        mantener_P_segunda = ifelse(
+          !is.na(cultivo_segunda) & cultivo_segunda != "",
+          round(rendimiento_objetivo_cultivo_segunda * factores_mantener[cultivo_segunda], 0),
+          0
+        ),
+        mantener_P_total = mantener_P + mantener_P_segunda,
+        
+        dosisCyM = if_else(
+          construir_P == "-",
+          as.character(mantener_P_total),  # Convertir mantener_P_total a carácter
+          as.character(mantener_P_total + as.numeric(construir_P))  # Si construir_P tiene dato numérico, sumar
+        )
       ) %>%
       ungroup()
+    
+    
     
     # Seleccionar columnas relevantes
     datos_resultado <- datos %>%
@@ -2199,15 +2236,30 @@ server <- function(input, output, session) {
     
     azufre_disp <- reactive({
       densidad_aparente <- ifelse(!is.null(input$dens_ap_s) && input$dens_ap_s != 0, input$dens_ap_s, 1.2)
-      if (!is.null(input$azufre) && input$azufre > 0) {
-        input$azufre * densidad_aparente * 2
-      } else {
-        (input$azufre_20 + input$azufre_40 + input$azufre_60) * (densidad_aparente * 2)
+      
+      # Verificar si azufre_20 es válido
+      if (is.null(input$azufre_20) || is.na(input$azufre_20) || input$azufre_20 <= 0) {
+        return("Debe ingresar un valor para S-sulfato a 0-20")
       }
+      
+      # Usar valores predeterminados para azufre_40 y azufre_60 si no se proporcionan
+      azufre_40 <- ifelse(!is.null(input$azufre_40) && !is.na(input$azufre_40), input$azufre_40, 0)
+      azufre_60 <- ifelse(!is.null(input$azufre_60) && !is.na(input$azufre_60), input$azufre_60, 0)
+      
+      # Calcular azufre disponible
+      (input$azufre_20 + azufre_40 + azufre_60) * (densidad_aparente * 2)
     })
     
     output$azufre_disp <- renderUI({
-      round(azufre_disp(), 0)
+      resultado <- azufre_disp()
+      
+      # Mostrar mensaje si el resultado no es numérico (es un mensaje de error)
+      if (!is.numeric(resultado)) {
+        div(style = "color: red; font-weight: bold;", resultado)
+      } else {
+        # Mostrar el resultado redondeado si es un número
+        div(style = "color: black; font-weight: bold;", round(resultado, 0))
+      }
     })
     
     
@@ -2218,43 +2270,43 @@ server <- function(input, output, session) {
     })
     
     output$dosis_s <- renderUI({
+      # Verificar si se ingresaron valores para azufre_20 y nan_s
+      if (is.null(input$azufre_20) || is.na(input$azufre_20) || input$azufre_20 <= 0) {
+        return(div(style = "color: red; font-weight: bold;", "Debe ingresar el valor de S-sulfato a 0-20cm"))
+      }
       
-      req(input$azufre_20, input$azufre_40, input$azufre_60, input$nan_s, input$zona_s, input$dens_ap_s)
+      if (is.null(input$nan_s) || is.na(input$nan_s) || input$nan_s <= 0) {
+        return(div(style = "color: red; font-weight: bold;", "Debe ingresar el valor de Nan"))
+      }
       
-      # Condiciones
-      suma_sulfato <- (input$azufre_20 + input$azufre_40 + input$azufre_60) * input$dens_ap_s * 2
-      condicion1 <- input$azufre_20 < 10 
+      # Manejo de valores predeterminados para otros inputs
+      azufre_20 <- input$azufre_20
+      azufre_40 <- ifelse(!is.null(input$azufre_40) && !is.na(input$azufre_40), input$azufre_40, 0)
+      azufre_60 <- ifelse(!is.null(input$azufre_60) && !is.na(input$azufre_60), input$azufre_60, 0)
+      dens_ap_s <- ifelse(!is.null(input$dens_ap_s) && !is.na(input$dens_ap_s), input$dens_ap_s, 1.2) # Valor predeterminado de densidad aparente
+      
+      # Cálculos de condiciones
+      suma_sulfato <- (azufre_20 + azufre_40 + azufre_60) * dens_ap_s * 2
+      condicion1 <- azufre_20 < 10 
       condicion2 <- suma_sulfato < 45 
       condicion3 <- (input$zona_s == "Sudeste de Bs.As" && input$nan_s < 65) || 
         (input$zona_s == "Otras zonas" && input$nan_s < 40)
       
       if (condicion1 && condicion2 && condicion3) {
-        
-        dosis_valor <- dosis_s()  
-        
+        dosis_valor <- dosis_s()
         div(
           class = "value-box",
           style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #DE9E36; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
-          
           div(
             style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
             HTML("<strong>Dosis de azufre<br>(kg S / ha):</strong>")
           ),
           div(
             style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
-            
-            div(
-              style = "font-size: 30px; font-weight: bold;",
-              round(dosis_valor, 0)
-            ),
-            div(
-              class = "icon-container",
-              style = "font-size: 40px;",
-              icon("droplet")
-            )
+            div(style = "font-size: 30px; font-weight: bold;", round(dosis_valor, 0)),
+            div(class = "icon-container", style = "font-size: 40px;", icon("droplet"))
           )
         )
-        
       } else {
         div(
           class = "value-box",
@@ -2299,35 +2351,36 @@ server <- function(input, output, session) {
       
       datos <- datos %>%
         mutate(
-          factor_s = ifelse(nutriente_en_grano_s == 0, factores_s[cultivo], nutriente_en_grano_s)
-        )
-      
-      datos <- datos %>%
-        mutate(
-          suma_sulfato = ((s_sulfato_20 + s_sulfato_40 + s_sulfato_60) * densidad_aparente * 2),
+          factor_s = ifelse(nutriente_en_grano_s == 0, factores_s[cultivo], nutriente_en_grano_s),
+          
+          datos_completos = !is.na(s_sulfato_20) & !is.na(nan) & nan > 0,
+          
+          suma_sulfato = if_else(
+            datos_completos,
+            (s_sulfato_20 + s_sulfato_40 + s_sulfato_60) * densidad_aparente * 2,
+            NA_real_
+          ),
           
           condiciones_cumplidas = case_when(
-            # Evaluar condiciones para la zona "Sudeste de Bs.As."
-            input$zona_s == "Sudeste de Bs.As." & 
+            datos_completos & input$zona_s == "Sudeste de Bs.As." & 
               (s_sulfato_20 < 10) & 
               (suma_sulfato < 45) & 
               (nan < 65) ~ TRUE,
             
-            # Evaluar condiciones para la zona "Otra"
-            input$zona_s == "Otra" & 
+            datos_completos & input$zona_s == "Otra" & 
               (s_sulfato_20 < 10) & 
               (suma_sulfato < 45) & 
               (nan < 40) ~ TRUE,
             
-            # Si no se cumplen las condiciones
             TRUE ~ FALSE
           ),
           
-          dosis_s = ifelse(
-            condiciones_cumplidas, 
-            round(rendimiento_objetivo * factor_s, 0),
-            "No se recomienda fertilizar con azufre"
+          dosis_s = case_when(
+            !datos_completos ~ "Debe ingresar el dato de nan y sulfato a 0-20cm",
+            condiciones_cumplidas ~ as.character(round(rendimiento_objetivo * factor_s, 0)),
+            TRUE ~ "No se recomienda fertilizar con azufre"
           )
+          
         ) %>%
         ungroup()
       
@@ -3005,7 +3058,7 @@ shinyApp(ui, server )
 #                            token='C0EB33DC639D60FE1930A4CA5CC8141F',
 #                            secret='xQn4aq7hXde1aFaoEpJM5BzIoBEKHw247ACHktKH')
 
-#rsconnect::deployApp(appDir = "I:/TRABAJO/CERBAS/Proyectos/Web_fertilizar/fertilizar", appPrimaryDoc = "app.R",
-#                     appName = "Nutrientes", account = 'intabalcarce', server = 'shinyapps.io')
+# rsconnect::deployApp(appDir = "C:/Users/lewczuk.nuria/OneDrive - Instituto Nacional de Tecnologia Agropecuaria/Escritorio/shiny_app/Nutrientes_suelo", appPrimaryDoc = "app.R",
+#                     appName = "Nutrientes_suelo", account = 'intabalcarce', server = 'shinyapps.io')
   
   
