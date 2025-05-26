@@ -1570,7 +1570,11 @@ server <- function(input, output, session) {
     datos$nan <- as.numeric(datos$nan)
     datos$densidad_aparente <- as.numeric(datos$densidad_aparente)
 
-    zona_maiz <- input$zona_multi_maiz
+    zona_maiz <- if ("maiz" %in% datos$cultivo) {
+      input$zona_multi_maiz
+    } else {
+      NA
+    }
     
     datos <- datos %>%
       mutate(
