@@ -864,14 +864,14 @@ ui <- fluidPage(
                           ),
                           column(4,
                                  numericInput("índice_monitoreo",  
-                                              label = strong(HTML("Índice de vegetación")),
+                                              label = strong(HTML("Índice de vegetación del lote")),
                                               value = 0.1,
                                               step = 0.01
                                  )
                           ),
                           column(4,
                                  numericInput("IFR_monitoreo",  
-                                              label = strong(HTML("Índice de franja de referencia")), 
+                                              label = strong(HTML("Índice de la franja de referencia")), 
                                               value = 0.1,
                                               step = 0.01
                                  )
