@@ -11,7 +11,10 @@ library(plotly)
 library(dplyr)
 library(bslib)
 library(shinythemes)
-library(shinyauthr)
+# library(shinyauthr)
+library(htmlwidgets)
+library(shinymanager)
+library(RMySQL)
 library(shinyjs)
 library(bs4Dash)
 library(fresh)
@@ -73,21 +76,36 @@ get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
     filter(login_time > now() - days(expiry))
 }
 
-save_new_user <- function(user, password, name, email, conn = db) {
-  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+save_new_user <- function(user, password, name, email, conn = NULL) {
+  if (is.null(conn)) {
+    conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+    on.exit(dbDisconnect(conn))
+  }
+  
   dbWriteTable(conn, "user_base", tibble(
     user = user,
     password = sodium::password_store(password),
     name = name,
     email = email
   ), append = TRUE)
-
-  
-  dbDisconnect(db)
 }
 
-user_base <- get_user_base()
-saveRDS(user_base, "user_base.rds")
+user_base <- reactive({
+  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+  on.exit(dbDisconnect(db))
+  dbReadTable(db, "user_base")
+})
+
+if (!"sessionids" %in% dbListTables(db)) {
+  dbCreateTable(db, "sessionids", c(
+    user = "TEXT",
+    sessionid = "TEXT",
+    login_time = "TEXT"
+  ))
+}
+
+# user_base <- get_user_base()
+# saveRDS(user_base, "user_base.rds")
 
 # file.exists("base_usuarios")
 # db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
@@ -157,6 +175,7 @@ ui <- fluidPage(
   
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"),
     tags$style(HTML("
     
     
@@ -238,7 +257,7 @@ ui <- fluidPage(
   br(),
   br(),
   tabsetPanel(
-    id = "main_tabs",
+    # id = "main_tabs",
     tabPanel("Principal",
              br(),
              h5(HTML("El manejo responsable de nutrientes y de los fertilizantes, en los sistemas agrícolas 
@@ -252,21 +271,23 @@ ui <- fluidPage(
                     Para lo cual, la misma está desarrollada en base a modelos publicados en diferentes revistas científicas 
                     y validados a nivel de lotes de producción.</strong>")),
              br(),
-             h4(HTML("<strong>Trayectoria</strong>")),
-             h5(HTML("La plataforma fue desarrollada y es actualizada por investigadores del grupo de 
-                     Relación Suelo - Cultivo de la Unidad Integrada Balcarce, los cuales presentan una amplia 
-                     trayectoria en investigación, docencia y transferencia en temas de fertilidad de suelos y 
-                     nutrición de cultivos. Además, el grupo es responsable del Laboratorio de Suelo de INTA Balcarce que 
-                     hace más de 30 años brinda no solo servicios de análisis de suelo y planta sino también actividades como 
-                     experimentación a campo, asesoramiento en fertilidad de suelos, charlas técnicas, jornadas 
-                     y cursos de actualización profesional.")),
+             h5(HTML("<strong>Trayectoria</strong>")),
+             h5(HTML("La plataforma fue desarrollada y es actualizada por investigadores del grupo Relación Suelo-Cultivo de la 
+             Unidad Integrada Balcarce, quienes cuentan con una destacada trayectoria en investigación, docencia y transferencia 
+             en fertilidad de suelos y nutrición de cultivos. Este grupo también está a cargo del Laboratorio de Suelos del INTA 
+             Balcarce, que desde hace más de 30 años ofrece no solo servicios de análisis de suelos y plantas, sino también 
+             actividades de experimentación a campo, asesoramiento técnico, charlas, jornadas y cursos de actualización profesional.")),
+             br(),
+             h6(HTML("<strong>Los doctores Nahuel I. Reussi Calvo y Hernán R. Sainz Rozas son los responsables académicos de la plataforma, 
+             mientras que su desarrollo está a cargo de la doctora Nuria Lewczuk.</strong>")),
+
              br(),
              h6(HTML("Puede acceder a la lista de servicios ofrecidos por el laboratorio aquí: <a href='servicios_lab_suelos_INTA_Balcarce.pdf' target='_blank'>Laboratorio de suelos</a>")),
              br(),
-             div(
-               style = "text-align: center;",
-               tags$img(src = "Imagen1.jpg", width = "50%", alt = "integrantes")
-             ),
+             # div(
+             #   style = "text-align: center;",
+             #   tags$img(src = "Imagen1.jpg", width = "50%", alt = "integrantes")
+             # ),
              br(),
              br(),
              
@@ -370,7 +391,8 @@ ui <- fluidPage(
                                                            value = 1),
                                               numericInput("dens_ap",  
                                                            label = strong(HTML("Densidad aparente (g / cm<sup>3</sup>)")), 
-                                                           value = 1.2)
+                                                           value = 1.2,
+                                                           step = 0.1)
                                        ),
                                        column(4,
                                               numericInput("nan",  
@@ -563,7 +585,8 @@ ui <- fluidPage(
                                               ),
                                               numericInput("factor_mantenimiento",  
                                                            label = strong(HTML("Nutriente en grano (kg P/t)")), 
-                                                           value = 0
+                                                           value = 0,
+                                                           step = 0.1
                                               ),
                                               uiOutput("mantener_P")
                                        ),
@@ -657,7 +680,8 @@ ui <- fluidPage(
                                                            value = 0),
                                               numericInput("dens_ap_s",  
                                                            label = strong(HTML("Densidad aparente (g / cm<sup>3</sup>)")), 
-                                                           value = 1.2),
+                                                           value = 1.2,
+                                                           step = 0.1),
                                               fluidRow(
                                                 column(12, 
                                                        div(style = "background-color: #FF991490; padding: 10px; border-radius: 10px; text-align: center;",
@@ -689,7 +713,8 @@ ui <- fluidPage(
                                               ),
                                               numericInput("factor_s",  
                                                            label = strong(HTML("Nutriente en grano (kg S/t)")), 
-                                                           value = 0
+                                                           value = 0,
+                                                           step = 0.1
                                               )
                                        )
                                      )
@@ -770,7 +795,8 @@ ui <- fluidPage(
                                        column(6,
                                               numericInput("factor_z",  
                                                            label = strong(HTML("Nutriente en grano (g Zn/t)")), 
-                                                           value = 0
+                                                           value = 0,
+                                                           step = 0.1
                                               )
                                        )
                                        )
@@ -1320,7 +1346,7 @@ server <- function(input, output, session) {
   
   demandaN <- reactive({
     req(input$rendimiento, input$req_N_sistema, input$req_N_planta)
-    if (input$nan != 0) {
+    if (!is.null(input$nan) && !is.na(input$nan) && input$nan != 0) {
       input$rendimiento * input$req_N_sistema
     } else {
       input$rendimiento * input$req_N_planta
@@ -1374,7 +1400,11 @@ server <- function(input, output, session) {
   })
   
   output$zonas_ui <- renderUI({
-    if (input$nan > 0 && input$cultivo == "Maiz") {
+    validate(
+      need(input$nan != "", "Debe ingresar un valor de Nan") # Verifica que input$nan no esté vacío
+    )
+    
+    if (input$cultivo == "Maiz") {
       selectInput("zona_maiz", 
                   label = strong("Seleccione la zona"),
                   choices = c("Sudeste siembra temprana", 
@@ -1415,14 +1445,24 @@ server <- function(input, output, session) {
 
   
   nan_total <- reactive({
-    input$nan * mineralizacion()
+    req(mineralizacion())
+    if (!is.null(input$nan) && !is.na(input$nan)) {
+      input$nan * mineralizacion()
+    } else {
+      NULL # Retorna NULL si input$nan no es válido
+    }
   })
   
   output$nan_total <- renderUI({
-    if (input$nan > 0) {
+    req(mineralizacion())
+    if (!is.null(input$nan) && !is.na(input$nan) && input$nan > 0) {
       round(nan_total(), 0)
-    } else {
+    } else if (!is.null(input$nan) && !is.na(input$nan) && input$nan <= 0) {
       HTML(paste0("<strong>El modelo considera el valor medio de mineralización de la región.</strong> "))
+    }
+    else {
+      # Si input$nan es NULL o no válido, no mostrar nada
+      NULL
     }
   })
   
@@ -2234,7 +2274,7 @@ server <- function(input, output, session) {
         updateNumericInput(session, "factor_s", value = 2.5)
         
       } else if (input$cultivoS == "papa") {
-        updateNumericInput(session, "factor_s", value = 1.5)
+        updateNumericInput(session, "factor_s", value = 0.3)
       }
     })
     
@@ -2350,7 +2390,7 @@ server <- function(input, output, session) {
           densidad_aparente = as.numeric(densidad_aparente)
         )
       
-      factores_s <- c("soja" = 3.5, "trigo" = 1.5, "maiz" = 1.2, "girasol" = 2.5, "papa" = 1.5)
+      factores_s <- c("soja" = 3.5, "trigo" = 1.5, "maiz" = 1.2, "girasol" = 2.5, "papa" = 0.3)
       
       
       datos <- datos %>%
