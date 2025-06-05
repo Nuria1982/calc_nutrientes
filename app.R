@@ -14,7 +14,7 @@ library(shinythemes)
 library(shinyauthr)
 library(htmlwidgets)
 library(shinymanager)
-library(RMySQL)
+#library(RMySQL)
 library(shinyjs)
 library(bs4Dash)
 library(fresh)
@@ -31,178 +31,178 @@ library(stringr)
 library(purrr)
 library(glue)
 
-db <- dbConnect(
-  RMySQL::MySQL(),
-  dbname = "DB_nutrientes",
-  host = "localhost", # Cambia esto si tu servidor no está en local
-  port = 3306,        # Cambia el puerto si no usas el predeterminado
-  user = "root",
-  password = "root"
-)
-
-
-if (!"user_base" %in% dbListTables(db)) {
-  dbExecute(db, "
-    CREATE TABLE user_base (
-      user VARCHAR(255),
-      password VARCHAR(255),
-      name VARCHAR(255),
-      email VARCHAR(255)
-    )
-  ")
-}
-
-if (!"sessionids" %in% dbListTables(db)) {
-  dbExecute(db, "
-    CREATE TABLE sessionids (
-      user VARCHAR(255),
-      sessionid VARCHAR(255),
-      login_time DATETIME
-    )
-  ")
-}
-
-# users <- tibble(
-#   user = c('user1', 'user2'),
-#   password = c(sodium::password_store("pass1"), sodium::password_store("pass2")),
-#   name = c('User One', 'User Two'),
-#   email = c('user1@example.com', 'user2@example.com')
+# db <- dbConnect(
+#   RMySQL::MySQL(),
+#   dbname = "DB_nutrientes",
+#   host = "localhost", # Cambia esto si tu servidor no está en local
+#   port = 3306,        # Cambia el puerto si no usas el predeterminado
+#   user = "root",
+#   password = "root"
 # )
 # 
-# # Construir consulta
-# query <- glue("INSERT INTO user_base (user, password, name, email) VALUES {values}",
-#               values = paste0(
-#                 "('", users$user, "', '", users$password, "', '", users$name, "', '", users$email, "')",
-#                 collapse = ", "
-#               )
-# )
 # 
-# dbExecute(db, query)
-
-get_user_base <- function() {
-  db <- dbConnect(RMySQL::MySQL(), 
-                  dbname = "DB_nutrientes",
-                  host = "localhost", # Cambia esto si tu servidor no está en local
-                  port = 3306,        # Cambia el puerto si no usas el predeterminado
-                  user = "root",
-                  password = "root")
-  on.exit(dbDisconnect(db))
-  dbGetQuery(db, "SELECT * FROM user_base")
-}
-
-add_sessionid_to_db <- function(user, sessionid, conn = db) {
-  # Construye la consulta interpolando valores
-  query <- glue::glue("
-    INSERT INTO sessionids (user, sessionid, login_time)
-    VALUES ('{user}', '{sessionid}', '{as.character(Sys.time())}')
-  ")
-  
-  # Ejecuta la consulta
-  dbExecute(conn, query)
-}
-
-get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
-  # Construye la consulta dinámicamente
-  query <- glue::glue("
-    SELECT * FROM sessionids
-    WHERE login_time > NOW() - INTERVAL {expiry} DAY
-  ")
-  
-  # Ejecuta la consulta y retorna los resultados
-  dbGetQuery(conn, query) %>%
-    as_tibble()
-}
-
-save_new_user <- function(user, password, name, email, conn = db) {
-  # Verificar si el usuario ya existe
-  existing_users <- dbGetQuery(conn, glue::glue("
-    SELECT COUNT(*) as count FROM user_base WHERE user = '{user}'
-  "))
-  
-  if (existing_users$count > 0) {
-    stop("El usuario ya está registrado.")
-  }
-  
-  # Si no existe, insertar el nuevo usuario
-  query <- glue::glue("
-    INSERT INTO user_base (user, password, name, email)
-    VALUES ('{user}', '{sodium::password_store(password)}', '{name}', '{email}')
-  ")
-  
-  dbExecute(conn, query)
-}
-
-# # Simulación de una base de datos de usuarios
-# if (file.exists("base_usuarios")) {
-#   db <- dbConnect(SQLite(), "base_usuarios")
-# } else {
-#   db <- dbConnect(SQLite(), "base_usuarios")
-#   dbCreateTable(db, "user_base", c(
-#     user = "TEXT",
-#     password = "TEXT",
-#     name = "TEXT",
-#     email = "TEXT"
-#   ))
-#   dbWriteTable(db, "user_base", tibble(
-#     user = c("user1", "user2"),
-#     password = c(
-#       sodium::password_store("pass1"),
-#       sodium::password_store("pass2")
-#     ),
-#     name = c("User One", "User Two"),
-#     email = c("user1@example.com", "user2@example.com")
-#   ), append = TRUE)
+# if (!"user_base" %in% dbListTables(db)) {
+#   dbExecute(db, "
+#     CREATE TABLE user_base (
+#       user VARCHAR(255),
+#       password VARCHAR(255),
+#       name VARCHAR(255),
+#       email VARCHAR(255)
+#     )
+#   ")
 # }
 # 
-# credentials_data <- reactiveVal(NULL)
+# if (!"sessionids" %in% dbListTables(db)) {
+#   dbExecute(db, "
+#     CREATE TABLE sessionids (
+#       user VARCHAR(255),
+#       sessionid VARCHAR(255),
+#       login_time DATETIME
+#     )
+#   ")
+# }
+# 
+# # users <- tibble(
+# #   user = c('user1', 'user2'),
+# #   password = c(sodium::password_store("pass1"), sodium::password_store("pass2")),
+# #   name = c('User One', 'User Two'),
+# #   email = c('user1@example.com', 'user2@example.com')
+# # )
+# # 
+# # # Construir consulta
+# # query <- glue("INSERT INTO user_base (user, password, name, email) VALUES {values}",
+# #               values = paste0(
+# #                 "('", users$user, "', '", users$password, "', '", users$name, "', '", users$email, "')",
+# #                 collapse = ", "
+# #               )
+# # )
+# # 
+# # dbExecute(db, query)
 # 
 # get_user_base <- function() {
-#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#   user_base <- dbReadTable(db, "user_base")
-#   return(user_base)
+#   db <- dbConnect(RMySQL::MySQL(), 
+#                   dbname = "DB_nutrientes",
+#                   host = "localhost", # Cambia esto si tu servidor no está en local
+#                   port = 3306,        # Cambia el puerto si no usas el predeterminado
+#                   user = "root",
+#                   password = "root")
+#   on.exit(dbDisconnect(db))
+#   dbGetQuery(db, "SELECT * FROM user_base")
 # }
 # 
- cookie_expiry <- 7
-# 
 # add_sessionid_to_db <- function(user, sessionid, conn = db) {
-#   tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
-#     dbWriteTable(conn, "sessionids", ., append = TRUE)
+#   # Construye la consulta interpolando valores
+#   query <- glue::glue("
+#     INSERT INTO sessionids (user, sessionid, login_time)
+#     VALUES ('{user}', '{sessionid}', '{as.character(Sys.time())}')
+#   ")
+#   
+#   # Ejecuta la consulta
+#   dbExecute(conn, query)
 # }
 # 
 # get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
-#   dbReadTable(conn, "sessionids") %>%
-#     mutate(login_time = ymd_hms(login_time)) %>%
-#     as_tibble() %>%
-#     filter(login_time > now() - days(expiry))
+#   # Construye la consulta dinámicamente
+#   query <- glue::glue("
+#     SELECT * FROM sessionids
+#     WHERE login_time > NOW() - INTERVAL {expiry} DAY
+#   ")
+#   
+#   # Ejecuta la consulta y retorna los resultados
+#   dbGetQuery(conn, query) %>%
+#     as_tibble()
 # }
 # 
-# save_new_user <- function(user, password, name, email, conn = NULL) {
-#   if (is.null(conn)) {
-#     conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#     on.exit(dbDisconnect(conn))
+# save_new_user <- function(user, password, name, email, conn = db) {
+#   # Verificar si el usuario ya existe
+#   existing_users <- dbGetQuery(conn, glue::glue("
+#     SELECT COUNT(*) as count FROM user_base WHERE user = '{user}'
+#   "))
+#   
+#   if (existing_users$count > 0) {
+#     stop("El usuario ya está registrado.")
 #   }
 #   
-#   dbWriteTable(conn, "user_base", tibble(
-#     user = user,
-#     password = sodium::password_store(password),
-#     name = name,
-#     email = email
-#   ), append = TRUE)
+#   # Si no existe, insertar el nuevo usuario
+#   query <- glue::glue("
+#     INSERT INTO user_base (user, password, name, email)
+#     VALUES ('{user}', '{sodium::password_store(password)}', '{name}', '{email}')
+#   ")
+#   
+#   dbExecute(conn, query)
 # }
-# 
-# user_base <- reactive({
-#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#   on.exit(dbDisconnect(db))
-#   dbReadTable(db, "user_base")
-# })
-# 
-# if (!"sessionids" %in% dbListTables(db)) {
-#   dbCreateTable(db, "sessionids", c(
-#     user = "TEXT",
-#     sessionid = "TEXT",
-#     login_time = "TEXT"
-#   ))
-# }
+
+# Simulación de una base de datos de usuarios
+if (file.exists("base_usuarios")) {
+  db <- dbConnect(SQLite(), "base_usuarios")
+} else {
+  db <- dbConnect(SQLite(), "base_usuarios")
+  dbCreateTable(db, "user_base", c(
+    user = "TEXT",
+    password = "TEXT",
+    name = "TEXT",
+    email = "TEXT"
+  ))
+  dbWriteTable(db, "user_base", tibble(
+    user = c("user1", "user2"),
+    password = c(
+      sodium::password_store("pass1"),
+      sodium::password_store("pass2")
+    ),
+    name = c("User One", "User Two"),
+    email = c("user1@example.com", "user2@example.com")
+  ), append = TRUE)
+}
+
+credentials_data <- reactiveVal(NULL)
+
+get_user_base <- function() {
+  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+  user_base <- dbReadTable(db, "user_base")
+  return(user_base)
+}
+
+cookie_expiry <- 7
+
+add_sessionid_to_db <- function(user, sessionid, conn = db) {
+  tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
+    dbWriteTable(conn, "sessionids", ., append = TRUE)
+}
+
+get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
+  dbReadTable(conn, "sessionids") %>%
+    mutate(login_time = ymd_hms(login_time)) %>%
+    as_tibble() %>%
+    filter(login_time > now() - days(expiry))
+}
+
+save_new_user <- function(user, password, name, email, conn = NULL) {
+  if (is.null(conn)) {
+    conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+    on.exit(dbDisconnect(conn))
+  }
+  
+  dbWriteTable(conn, "user_base", tibble(
+    user = user,
+    password = sodium::password_store(password),
+    name = name,
+    email = email
+  ), append = TRUE)
+}
+
+user_base <- reactive({
+  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+  on.exit(dbDisconnect(db))
+  dbReadTable(db, "user_base")
+})
+
+if (!"sessionids" %in% dbListTables(db)) {
+  dbCreateTable(db, "sessionids", c(
+    user = "TEXT",
+    sessionid = "TEXT",
+    login_time = "TEXT"
+  ))
+}
 
 # user_base <- get_user_base()
 # saveRDS(user_base, "user_base.rds")
@@ -357,7 +357,7 @@ ui <- fluidPage(
   br(),
   br(),
   tabsetPanel(
-    # id = "main_tabs",
+    id = "main_tabs",
     tabPanel("Principal",
              br(),
              h5(HTML("El manejo responsable de nutrientes y de los fertilizantes, en los sistemas agrícolas 
@@ -1052,108 +1052,203 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
     ####### Registro de usuario
-    
+    #MySQL
+  # logout_init <- shinyauthr::logoutServer(
+  #   id = "logout",
+  #   active = reactive(credentials()$user_auth)
+  # )
+  #   
+  # 
+  #   credentials <- shinyauthr::loginServer(
+  #     id = "login",
+  #     data = get_user_base(),
+  #     user_col = user,
+  #     pwd_col = password,
+  #     sodium_hashed = TRUE,
+  #     cookie_logins = TRUE,
+  #     sessionid_col = sessionid,
+  #     cookie_getter = function() get_sessionids_from_db(db),
+  #     cookie_setter = function(user, sessionid) add_sessionid_to_db(user, sessionid, db),
+  #     log_out = reactive(logout_init())
+  #   )
+  #   
+  # 
+  #   
+  #   observeEvent(input$abrir_registro, {
+  #     # Mostrar el formulario de registro en un modal
+  #     showModal(
+  #       modalDialog(
+  #         title = "Formulario de Registro",
+  #         textInput("nombre", "Nombre Completo"),
+  #         textInput("usuario", "Nombre de Usuario"),
+  #         textInput("email", "Correo Electrónico"),
+  #         passwordInput("password", "Contraseña"),
+  #         passwordInput("confirmar_password", "Confirmar Contraseña"),
+  #         footer = tagList(
+  #           modalButton("Cancelar"),
+  #           actionButton("enviar_registro", "Registrar")
+  #         )
+  #       )
+  #     )
+  #   })
+  #   
+  #   # Registrar el nuevo usuario
+  #   observeEvent(input$enviar_registro, {
+  #     if (input$password != input$confirmar_password) {
+  #       showModal(modalDialog(
+  #         title = "Error",
+  #         "Las contraseñas no coinciden.",
+  #         easyClose = TRUE,
+  #         footer = NULL
+  #       ))
+  #       return()
+  #     }
+  #     
+  #     existing_users <- get_user_base()$user
+  #     if (input$usuario %in% existing_users) {
+  #       showNotification("El usuario ya está registrado.", type = "error")
+  #       return()
+  #     }
+  #     
+  #     
+  #     tryCatch({
+  #       save_new_user(
+  #         user = input$usuario,
+  #         password = input$password,
+  #         name = input$nombre,
+  #         email = input$email
+  #       )
+  #       
+  #       print(get_user_base())
+  #       showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
+  #       session$reload()
+  #       removeModal()
+  #     }, error = function(e) {
+  #       showModal(modalDialog(
+  #         title = "Error",
+  #         "Hubo un problema al registrar al usuario. Por favor intente de nuevo.",
+  #         easyClose = TRUE,
+  #         footer = NULL
+  #       ))
+  #       message("Error al registrar usuario: ", e$message)
+  #     })
+  #   })
+  # 
+  # 
+  #   observe({
+  #     if (credentials()$user_auth) {
+  #       updateTabsetPanel(session, "main_tabs", selected = "Principal")
+  #     } else {
+  #       updateTabsetPanel(session, "main_tabs", selected = NULL)
+  #     }
+  #   })
+  # 
+  #   observeEvent(input$main_tabs, {
+  #     if (!credentials()$user_auth && input$main_tabs != "Principal") {
+  #       showModal(modalDialog(
+  #         title = "Acceso restringido",
+  #         "Por favor inicie sesión para acceder a esta pestaña.",
+  #         easyClose = TRUE,
+  #         footer = NULL
+  #       ))
+  #       updateTabsetPanel(session, "main_tabs", selected = "Principal")
+  #     }
+  #   })
+  
+  #SQLIte
+  
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
-    
   
-    credentials <- shinyauthr::loginServer(
-      id = "login",
-      data = get_user_base(),
-      user_col = user,
-      pwd_col = password,
-      sodium_hashed = TRUE,
-      cookie_logins = TRUE,
-      sessionid_col = sessionid,
-      cookie_getter = function() get_sessionids_from_db(db),
-      cookie_setter = function(user, sessionid) add_sessionid_to_db(user, sessionid, db),
-      log_out = reactive(logout_init())
-    )
-    
   
-    
-    observeEvent(input$abrir_registro, {
-      # Mostrar el formulario de registro en un modal
-      showModal(
-        modalDialog(
-          title = "Formulario de Registro",
-          textInput("nombre", "Nombre Completo"),
-          textInput("usuario", "Nombre de Usuario"),
-          textInput("email", "Correo Electrónico"),
-          passwordInput("password", "Contraseña"),
-          passwordInput("confirmar_password", "Confirmar Contraseña"),
-          footer = tagList(
-            modalButton("Cancelar"),
-            actionButton("enviar_registro", "Registrar")
-          )
+  credentials <- shinyauthr::loginServer(
+    id = "login",
+    data = get_user_base(),
+    user_col = user,
+    pwd_col = password,
+    sodium_hashed = TRUE,
+    cookie_logins = TRUE,
+    sessionid_col = sessionid,
+    cookie_getter = get_sessionids_from_db,
+    cookie_setter = add_sessionid_to_db,
+    log_out = reactive(logout_init())
+  )
+  
+  
+  
+  observeEvent(input$abrir_registro, {
+    # Mostrar el formulario de registro en un modal
+    showModal(
+      modalDialog(
+        title = "Formulario de Registro",
+        textInput("nombre", "Nombre Completo"),
+        textInput("usuario", "Nombre de Usuario"),
+        textInput("email", "Correo Electrónico"),
+        passwordInput("password", "Contraseña"),
+        passwordInput("confirmar_password", "Confirmar Contraseña"),
+        footer = tagList(
+          modalButton("Cancelar"),
+          actionButton("enviar_registro", "Registrar")
         )
       )
-    })
+    )
+  })
+  
+  # Registrar el nuevo usuario
+  observeEvent(input$enviar_registro, {
+    if (input$password != input$confirmar_password) {
+      showModal(modalDialog(
+        title = "Error",
+        "Las contraseñas no coinciden.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      return()
+    }
     
-    # Registrar el nuevo usuario
-    observeEvent(input$enviar_registro, {
-      if (input$password != input$confirmar_password) {
-        showModal(modalDialog(
-          title = "Error",
-          "Las contraseñas no coinciden.",
-          easyClose = TRUE,
-          footer = NULL
-        ))
-        return()
-      }
-      
-      existing_users <- get_user_base()$user
-      if (input$usuario %in% existing_users) {
-        showNotification("El usuario ya está registrado.", type = "error")
-        return()
-      }
-      
-      
-      tryCatch({
-        save_new_user(
-          user = input$usuario,
-          password = input$password,
-          name = input$nombre,
-          email = input$email
-        )
-        
-        print(get_user_base())
-        showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
-        session$reload()
-        removeModal()
-      }, error = function(e) {
-        showModal(modalDialog(
-          title = "Error",
-          "Hubo un problema al registrar al usuario. Por favor intente de nuevo.",
-          easyClose = TRUE,
-          footer = NULL
-        ))
-        message("Error al registrar usuario: ", e$message)
-      })
-    })
+    if (input$usuario %in% get_user_base()$user) {
+      showNotification("El usuario ya está registrado.", type = "error")
+      return()
+    }
+    
+    save_new_user(
+      user = input$usuario,
+      password = input$password,
+      name = input$nombre,
+      email = input$email
+    )
+    
+    print(get_user_base())
+    credentials_data(get_user_base())
+    
+    session$reload() 
+    
+    removeModal()
+    showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
+  })
   
-
-    observe({
-      if (credentials()$user_auth) {
-        updateTabsetPanel(session, "main_tabs", selected = "Principal")
-      } else {
-        updateTabsetPanel(session, "main_tabs", selected = NULL)
-      }
-    })
   
-    observeEvent(input$main_tabs, {
-      if (!credentials()$user_auth && input$main_tabs != "Principal") {
-        showModal(modalDialog(
-          title = "Acceso restringido",
-          "Por favor inicie sesión para acceder a esta pestaña.",
-          easyClose = TRUE,
-          footer = NULL
-        ))
-        updateTabsetPanel(session, "main_tabs", selected = "Principal")
-      }
-    })
+  observe({
+    if (credentials()$user_auth) {
+      updateTabsetPanel(session, "main_tabs", selected = "Principal")
+    } else {
+      updateTabsetPanel(session, "main_tabs", selected = NULL)
+    }
+  })
+  
+  observeEvent(input$main_tabs, {
+    if (!credentials()$user_auth && input$main_tabs != "Principal") {
+      showModal(modalDialog(
+        title = "Acceso restringido",
+        "Por favor inicie sesión para acceder a esta pestaña.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      updateTabsetPanel(session, "main_tabs", selected = "Principal")
+    }
+  })
   
   # # Guardar datos del usuario al salir
   # observeEvent(logout_init(), {
@@ -1170,15 +1265,15 @@ server <- function(input, output, session) {
     content = function(file) {
       # Crear un dataframe modelo
       datos <- data.frame(
-        Lote = c(1, 1, 1, 2, 2, 2), 
-        Cultivo = c("maiz", "maiz", "maiz", "trigo", "trigo", "trigo"),
+        Lote = c(1, NA, NA, 2, NA, NA), 
+        Cultivo = c("maiz", NA, NA, "trigo", NA, NA),
         Rendimiento_objetivo = c(NA, NA, NA, NA, NA, NA), 
         Cultivo_segunda = c(NA, NA, NA, "soja", NA, NA),
         Rendimiento_objetivo_cultivo_segunda = c(NA, NA, NA, NA, NA, NA), 
         Efecto_antecesor = c(NA, NA, NA, NA, NA, NA),
         Proteina_objetivo = c(NA, NA, NA, NA, NA, NA),
         Estrato = c("0-20", "20-40", "40-60", "0-20", "20-40", "40-60"),
-        Densidad_aparente = c(1.2, NA, NA, 1.0, NA, NA),
+        Densidad_aparente = c(1.2, NA, NA, 1.2, NA, NA),
         P_Bray_actual = c(NA, NA, NA, NA, NA, NA),
         Zn_DTPA = c(NA, NA, NA, NA, NA, NA),
         Nan = c(NA, NA, NA, NA, NA, NA),
@@ -1202,16 +1297,16 @@ server <- function(input, output, session) {
         Efecto_antecesor = "Efecto antecesor (kg/ha)",
         Proteina_objetivo = "Proteína objetivo (%)",
         Estrato = "Estrato (cm)",
-        Densidad_aparente = "Densidad aparente (g/cm³)",
+        Densidad_aparente = "Densidad aparente (g/cm³)*",
         P_Bray_actual = "P Bray actual (ppm)",
         Zn_DTPA = "Zn - DTPA (ppm)",
         Nan = "Nan (mg/kg)",
         N_nitrato = "N-Nitrato (mg/kg)",
         S_sulfato = "Sulfato (mg/kg)",
-        nivelP_objetivo = "Nivel P objetivo (ppm)",
-        Nutriente_en_grano_P = "Nutriente en grano P (kg/t)",
-        Nutriente_en_grano_S = "Nutriente en grano S (kg/t)",
-        Nutriente_en_grano_Z = "Nutriente en grano Z (kg/t)"
+        nivelP_objetivo = "Nivel P objetivo (ppm)*",
+        Nutriente_en_grano_P = "Nutriente en grano P (kg/t)*",
+        Nutriente_en_grano_S = "Nutriente en grano S (kg/t)*",
+        Nutriente_en_grano_Z = "Nutriente en grano Z (kg/t)*"
       )
       
       # Aplicar los nuevos nombres al data.frame
@@ -1246,8 +1341,16 @@ server <- function(input, output, session) {
       estilo_general4 <- createStyle(fgFill = "gray90")
       estilo_general5 <- createStyle(border = "Bottom",
                                      fgFill = "gray90")
+      estilo_general6 <- createStyle(fgFill = "gray90",
+                                     fontColour = "red",
+                                     textDecoration = "bold",
+                                     border = "Bottom",
+                                     borderColour = "black",
+                                     borderStyle = "thin",
+                                     wrapText = TRUE )
       estilo_aclaracion <- createStyle(textDecoration = c("bold", "italic"),
-                                       fontSize = 16)
+                                       fontColour = "red",
+                                       fontSize = 12)
 
      
       addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:18), gridExpand = TRUE)
@@ -1255,7 +1358,13 @@ server <- function(input, output, session) {
       addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8,13), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8,13), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:12, 14:18), gridExpand = TRUE)
-     
+      addStyle(wb, "Datos", style = estilo_general6, rows = c(1), cols = c(9, 15:18), gridExpand = TRUE)
+      
+      last_row <- nrow(datos) + 3
+      aclaracion <- "* Puede ingresar valores propios o usar los valores predeterminados (Ver instructivo para consultar valores)."
+      writeData(wb, "Datos", aclaracion, startRow = last_row, startCol = 1)
+      addStyle(wb, "Datos", style = estilo_aclaracion, rows = last_row, cols = 1, gridExpand = TRUE)
+      
       saveWorkbook(wb, file, overwrite = TRUE)
       
       
@@ -1283,8 +1392,8 @@ server <- function(input, output, session) {
     
     # Verificar si el archivo tiene las columnas requeridas
     required_columns <- c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Cultivo segunda", "Rendimiento cultivo segunda (tn/ha)", "Efecto antecesor (kg/ha)", "Proteína objetivo (%)",
-                          "Estrato (cm)", "Densidad aparente (g/cm³)", "P Bray actual (ppm)", "Zn - DTPA (ppm)", "Nan (mg/kg)", "N-Nitrato (mg/kg)", "Sulfato (mg/kg)","Nivel P objetivo (ppm)", 
-                          "Nutriente en grano P (kg/t)", "Nutriente en grano S (kg/t)", "Nutriente en grano Z (kg/t)")
+                          "Estrato (cm)", "Densidad aparente (g/cm³)*", "P Bray actual (ppm)", "Zn - DTPA (ppm)", "Nan (mg/kg)", "N-Nitrato (mg/kg)", "Sulfato (mg/kg)","Nivel P objetivo (ppm)*", 
+                          "Nutriente en grano P (kg/t)*", "Nutriente en grano S (kg/t)*", "Nutriente en grano Z (kg/t)*")
     missing_columns <- setdiff(required_columns, colnames(data))
     
     if (length(missing_columns) > 0) {
@@ -1296,6 +1405,9 @@ server <- function(input, output, session) {
       return(NULL) 
     }
     
+    data <- data %>% 
+      filter(!grepl("^\\* Puede ingresar valores propios", .[[1]], ignore.case = TRUE))
+    
     # Renombrar las columnas con las unidades correspondientes
     column_original <- c(
       Lote = "Lote",
@@ -1306,16 +1418,16 @@ server <- function(input, output, session) {
       `Efecto antecesor (kg/ha)` = "Efecto_antecesor",
       `Proteína objetivo (%)` = "Proteina_objetivo",
       `Estrato (cm)` = "Estrato",
-      `Densidad aparente (g/cm³)` = "Densidad_aparente",
+      `Densidad aparente (g/cm³)*` = "Densidad_aparente",
       `P Bray actual (ppm)` = "P_Bray_actual",
       `Zn - DTPA (ppm)` = "Zn_DTPA",
       `Nan (mg/kg)` = "Nan",
       `N-Nitrato (mg/kg)` = "N_nitrato",
       `Sulfato (mg/kg)` = "S_sulfato",
-      `Nivel P objetivo (ppm)` = "nivelP_objetivo",
-      `Nutriente en grano P (kg/t)` = "Nutriente_en_grano_P",
-      `Nutriente en grano S (kg/t)` = "Nutriente_en_grano_S",
-      `Nutriente en grano Z (kg/t)` = "Nutriente_en_grano_Z"
+      `Nivel P objetivo (ppm)*` = "nivelP_objetivo",
+      `Nutriente en grano P (kg/t)*` = "Nutriente_en_grano_P",
+      `Nutriente en grano S (kg/t)*` = "Nutriente_en_grano_S",
+      `Nutriente en grano Z (kg/t)*` = "Nutriente_en_grano_Z"
     )
     
     # Aplicar los nuevos nombres al data.frame
@@ -2607,7 +2719,7 @@ server <- function(input, output, session) {
         updateNumericInput(session, "factor_z", value = 50)
         
       } else if (input$cultivoZ == "papa") {
-        updateNumericInput(session, "factor_z", value = 6.5)
+        updateNumericInput(session, "factor_z", value = 3.8)
       }
     })
     

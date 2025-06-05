@@ -5,7 +5,7 @@ account: intabalcarce
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 13791491
-bundleId: 10356383
+bundleId: 10404752
 url: https://intabalcarce.shinyapps.io/Nutrientes_suelo/
 version: 1
 asMultiple: FALSE
