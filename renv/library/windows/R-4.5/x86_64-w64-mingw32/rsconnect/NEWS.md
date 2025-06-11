@@ -1,3 +1,11 @@
+# rsconnect 1.4.1
+
+* Fixed processing error during server validation, which prevented
+  registration of new Connect accounts. (#1166)
+
+* When waiting for initial Connect account authorization, allow HTTP 401
+  responses. (#1167)
+
 # rsconnect 1.4.0
 
 * Content directories with a period in their name are no longer treated as a

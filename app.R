@@ -1761,12 +1761,24 @@ server <- function(input, output, session) {
     # 
     # Verificar el valor del cultivo seleccionado
     if (input$cultivo == "Maiz") {
-      selectInput("zona_maiz", 
-                  label = strong("Seleccione la zona"),
-                  choices = c("Sudeste siembra temprana", 
-                              "Nucleo siembra temprana", 
-                              "Nucleo siembra tardia"),
-                  selected = "Sudeste siembra temprana")
+      tagList( 
+        selectInput("zona_maiz", 
+                    label = strong("Seleccione la zona"),
+                    choices = c("Sudeste siembra temprana", 
+                                "Nucleo siembra temprana", 
+                                "Nucleo siembra tardia", 
+                                "Otros"),
+                    selected = "Sudeste siembra temprana"),
+        
+        # Mostrar campo numérico solo si "Otros" está seleccionado
+        conditionalPanel(
+          condition = "input.zona_maiz == 'Otros'",
+          numericInput("valor_otros_zona", 
+                       label = strong("Ingrese un valor personalizado para la zona"), 
+                       value = 0, # Valor inicial por defecto
+                       min = 0)
+        )
+      )
     } else if (!is.null(input$nan) && input$nan > 0 && input$cultivo != "Maiz") {
       # Para otros cultivos, mostrar el campo de entrada numérica
       numericInput("valor_no_maiz", 
@@ -1786,15 +1798,20 @@ server <- function(input, output, session) {
     
     if (input$cultivo == "Maiz") {
       req(input$zona_maiz) # Asegura que zona_maiz tiene un valor
-      switch(input$zona_maiz,
-             "Sudeste siembra temprana" = 3.2,
-             "Nucleo siembra temprana" = 3.6,
-             "Nucleo siembra tardia" = 4.2,
-             0)  
+      if (input$zona_maiz == "Otros") {
+        req(input$valor_otros_zona) # Asegura que el valor personalizado existe
+        input$valor_otros_zona
+      } else {
+        switch(input$zona_maiz,
+               "Sudeste siembra temprana" = 3.2,
+               "Nucleo siembra temprana" = 3.6,
+               "Nucleo siembra tardia" = 4.2,
+               0) # Valor por defecto si la zona no coincide
+      }
     } else if (!is.null(input$valor_no_maiz)) {
       input$valor_no_maiz
     } else {
-      0
+      0 # Valor por defecto si no hay valores válidos
     }
   })
   
