@@ -893,13 +893,12 @@ ui <- fluidPage(
                                                "Girasol" = "girasol",
                                                "Papa" = "papa"
                                              ),
-                                             selected = "maiz"
+                                             selected = "maiz")
                                  )
-                          )
-                        ),
+                          ),
                         fluidRow(
                           column(4, 
-                                 div(style = "background-color: #E5E5E580; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #E5E5E580; padding: 10px; border-radius: 10px;",
                                      
                                      fluidRow(
                                        column(12, 
@@ -907,12 +906,10 @@ ui <- fluidPage(
                                                            label = strong(HTML("Zn - DTPA (ppm) (0-20cm)")),
                                                            value = 0,
                                                            step = 0.1,
-                                                           min = 0)
-                                              
+                                                           min = 0))
                                        )
                                      )
-                                 )
-                          ),
+                                 ),
                           column(4, 
                                  div(style = "background-color: #778DA980; padding: 15px; border-radius: 10px;",
                                      h4(strong("Datos para el cálculo de la extracción de zinc")),
@@ -921,34 +918,39 @@ ui <- fluidPage(
                                               numericInput("rendimiento_z",  
                                                            label = strong(HTML("Rendimiento objetivo (t/ha)")),
                                                            value = 1,
-                                                           min = 0
-                                              )
+                                                           min = 0)
                                        ),
                                        column(6,
                                               numericInput("factor_z",  
                                                            label = strong(HTML("Nutriente en grano (g Zn/t)")), 
                                                            value = 0,
                                                            step = 0.1,
-                                                           min = 0
-                                              )
+                                                           min = 0)
                                        )
                                      )
                                  )
                           ),
-                          br(),
-                          fluidRow(
-                            column(10, offset = 2,
-                                   div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
-                                       div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
-                                           uiOutput("dosis_z")
-                                       )
-                                   )
+                          column(4,
+                                 div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
+                                     div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
+                                         uiOutput("dosis_z"))
+                                     )
+                                 )
+                          ),
+                        br(),
+                        fluidRow(
+                          column(6, offset = 3,
+                          div(
+                            style = "display: flex; justify-content: center; align-items: center; gap: 20px;",
+                            # Los tres recuadros generados dinámicamente en una sola línea
+                            div(
+                              style = "flex: 1;",
+                              uiOutput("recuadros_z")
                             )
                           )
+                          )
                         )
-                        
-                        
-               ),
+                        ),
                tabPanel("Múltiples lotes", 
                         value = "seccion_zinc",
                         h3(strong("Cálculo de la dosis recomendada de zinc para cada lote")),
@@ -985,12 +987,11 @@ ui <- fluidPage(
                                                "Girasol" = "girasol",
                                                "Papa" = "papa"
                                              ),
-                                             selected = "maiz"
+                                             selected = "maiz")
                                  )
-                          )
-                        ),
+                          ),
                         fluidRow(
-                          column(6, 
+                          column(4, 
                                  div(style = "background-color: #E5E5E580; padding: 15px; border-radius: 10px;",
                                      
                                      fluidRow(
@@ -999,12 +1000,10 @@ ui <- fluidPage(
                                                            label = strong(HTML("B - extractable (ppm) (0-20cm)")),
                                                            value = 0,
                                                            step = 0.01,
-                                                           min = 0)
-                                              
+                                                           min = 0))
                                        )
                                      )
-                                 )
-                          ),
+                                 ),
                           column(4, 
                                  div(style = "background-color: #778DA980; padding: 15px; border-radius: 10px;",
                                      h4(strong("Datos para el cálculo de la extracción de boro")),
@@ -1027,18 +1026,26 @@ ui <- fluidPage(
                                      )
                                  )
                           ),
-                          br(),
-                          fluidRow(
-                            column(10, offset = 2,
+                            column(4, 
                                    div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
                                        div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
-                                           uiOutput("dosis_B")
+                                           uiOutput("dosis_B"))
                                        )
+                                   )
+                          ),
+                          br(),
+                          fluidRow(
+                            column(6, offset = 3,
+                                   div(
+                                     style = "display: flex; justify-content: center; align-items: center; gap: 20px;",
+                                     # Los tres recuadros generados dinámicamente en una sola línea
+                                     div(
+                                       style = "flex: 1;",
+                                       uiOutput("recuadros_B")
+                                     )
                                    )
                             )
                           )
-                        )
-                        
                         
                ),
                tabPanel("Múltiples lotes", 
@@ -1767,13 +1774,13 @@ server <- function(input, output, session) {
                     choices = c("Sudeste siembra temprana", 
                                 "Nucleo siembra temprana", 
                                 "Nucleo siembra tardia", 
-                                "Otros"),
+                                "Otras"),
                     selected = "Sudeste siembra temprana"),
         
-        # Mostrar campo numérico solo si "Otros" está seleccionado
+        # Mostrar campo numérico solo si "Otras" está seleccionado
         conditionalPanel(
-          condition = "input.zona_maiz == 'Otros'",
-          numericInput("valor_otros_zona", 
+          condition = "input.zona_maiz == 'Otras'",
+          numericInput("valor_otras_zona", 
                        label = strong("Ingrese un valor personalizado para la zona"), 
                        value = 0, # Valor inicial por defecto
                        min = 0)
@@ -1798,9 +1805,9 @@ server <- function(input, output, session) {
     
     if (input$cultivo == "Maiz") {
       req(input$zona_maiz) # Asegura que zona_maiz tiene un valor
-      if (input$zona_maiz == "Otros") {
-        req(input$valor_otros_zona) # Asegura que el valor personalizado existe
-        input$valor_otros_zona
+      if (input$zona_maiz == "Otras") {
+        req(input$valor_otras_zona) # Asegura que el valor personalizado existe
+        input$valor_otras_zona
       } else {
         switch(input$zona_maiz,
                "Sudeste siembra temprana" = 3.2,
@@ -2897,22 +2904,28 @@ server <- function(input, output, session) {
     # Renderizamos la UI dependiendo de las condiciones
     if (!is.null(dosis_valor)) {
       div(
-        class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #778DA9; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+        class = "doses-container",
+        style = "display: flex; flex-direction: column; gap: 20px; justify-content: center; align-items: center;",
+        
+        # Dosis calculada
         div(
-          style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
-          HTML("<strong>Dosis de zinc<br>(g Zn / ha):</strong>")
-        ),
-        div(
-          style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #778DA9; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
           div(
-            style = "font-size: 30px; font-weight: bold;",
-            round(dosis_valor, 0)
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis de zinc<br>(g Zn / ha):</strong>")
           ),
           div(
-            class = "icon-container",
-            style = "font-size: 40px;",
-            icon("droplet")
+            style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+            div(
+              style = "font-size: 30px; font-weight: bold;",
+              round(dosis_valor, 0)
+            ),
+            div(
+              class = "icon-container",
+              style = "font-size: 40px;",
+              icon("droplet")
+            )
           )
         )
       )
@@ -2923,6 +2936,75 @@ server <- function(input, output, session) {
         div(
           style = "font-size: 30px; font-weight: bold; margin-bottom: 6px; text-align: center;",
           HTML("<strong>No se recomienda fertilizar con zinc</strong>")
+        )
+      )
+    }
+  })
+  
+  
+  output$recuadros_z <- renderUI({
+    
+    req(input$zinc)
+    
+    limite_superior <- if (tolower(input$cultivoZ) == "papa") 2 else 1.2
+    
+    dosis_valor <- if (input$zinc >= 0 && input$zinc < 0.5) {
+      dosis_z() * 1.3
+    } else if (input$zinc >= 0.5 && input$zinc < limite_superior) {
+      dosis_z()
+    } else {
+      NULL
+    }
+    
+    if (!is.null(dosis_valor)) {
+      # Espaciado y los tres cuadros en línea horizontal
+      div(
+        class = "doses-container",
+        style = "display: flex; flex-direction: row; gap: 30px; justify-content: center; align-items: center;",
+        
+        # Dosis a la semilla
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #778DA9; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis a la semilla<br>(100-200 g/ha):</strong>")
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("seedling")
+          )
+        ),
+        
+        # Dosis foliar
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #84A9C0; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis foliar<br>(400-600 g/ha):</strong>")
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("leaf")
+          )
+        ),
+        
+        # Dosis al suelo
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #415A77; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis al suelo<br>(1-1.5 kg/ha):</strong>")
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("globe")
+          )
         )
       )
     }
@@ -3092,6 +3174,59 @@ server <- function(input, output, session) {
         div(
           style = "font-size: 30px; font-weight: bold; margin-bottom: 6px; text-align: center;",
           HTML("<strong>No se recomienda fertilizar con boro</strong>")
+        )
+      )
+    }
+  })
+  
+  output$recuadros_B <- renderUI({
+    
+    req(input$boro)
+    
+    limite_superior <- if (tolower(input$cultivoB) == "soja") 0.61 else 0.66
+    
+    dosis_valor_B <- if (input$boro >= 0 && input$boro < 0.5) {
+      dosis_B() * 1.3
+    } else if (input$boro >= 0.5 && input$boro < limite_superior) {
+      dosis_B()
+    } else {
+      NULL
+    }
+    
+    if (!is.null(dosis_valor_B)) {
+      # Espaciado y los tres cuadros en línea horizontal
+      div(
+        class = "doses-container",
+        style = "display: flex; flex-direction: row; gap: 30px; justify-content: center; align-items: center;",
+        
+        # Dosis foliar
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #84A9C0; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis foliar<br>(100-200 g/ha):</strong>")
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("leaf")
+          )
+        ),
+        
+        # Dosis al suelo
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #415A77; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+            HTML("<strong>Dosis al suelo<br>(1-2 kg/ha):</strong>")
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("globe")
+          )
         )
       )
     }
