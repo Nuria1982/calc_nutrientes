@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "nutrientes-463413",
+  "private_key_id": "a5b1e705018fe3bf0c3461313e42ba72f2952a5e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC/p4fVvjPdAQD+\nFzmlGh4fea0HtYlgDPxzFLAI7grxlZuFVKAeOHEAe3dDacU0fY6zufno5YodS/2X\nNGIk3FXm1yjE3oBJQ7TuLwNYSHX2i11Xyu1y7V6qmuJhmtyYXTB+v8BqrvO7S9Px\nD150Q2JCKB/Su4AxIUBUeJso7/XiRcS8eGhbEaeWChfeDAp2By6D6CR40TLBx/tP\noW4OJrThmRG9TkllG8KGlUgQnMVlA2wxb8zn4oMnOdQKqLcTj8KDnqzdXSGccXu7\nRAECjoELKEqpw4FW/S7Pm+3HKZhI95IIC1JX/UrfpJjCGeUNgk+BDqxPf+sigaZJ\nryMxk4v7AgMBAAECggEAHAyxOlzXta0TmnHcaPKKnWwEdqVgvA21K5lH2Pa7OUz+\ncaQcucTkR6rKSLPZPevGZT1/JaaP8Tu8Rf36WI9lhHR8WLEr22KCaihioprFplYS\noj+77YnExM6y+pAHYHFQdgHVxTINJUiyyzbG9IMhhVyJU8vyC2lkwzgnlUqRamfa\nH1b4focYXrq3L4+SyUGDFUuliM6yW5+APwOhZECauT8UHo8oVvaKD4EgJprSNeFk\nnGIWC3dMIfunc6AV6SyJfU3qK7hBsK5F5llij/FiAGsB1YYffT9AJAnYpAPR4E5P\nmnPTpWT/ok6U4Xy1PATLSVzVTK7X9CVIjb4n6QSC+QKBgQDiczGdBSZP+WnT4Rxy\noUx03xJK5Xm5J9cHcRqmd4+IV9XGLKgqZzlB0XVkXvja23CuVr+8mcFVpppTB48l\nmPorzU8NUEyN2uOPd6jHVPt5hZrL2FVDvKGev3oEbxuS+N6ti6zbvGO96+F6J7yY\nMFIl8JNthEqP33+M93RF83asrwKBgQDYqfQazf1zFthsWn1+YeAFBWgI4ChjxPgQ\ngvBsyuTQuqVpHIgmrNlJBb/lMhutqnTvCmrRn2rutijfsz9R8PNge45QWrCLi9Hg\npXPcM5OZqanwpRvd1r70SNb+KCbql87N0I4X2BalJJAwuTqX1YuRICrbCkOHk3jC\n0+ENpPtgdQKBgQDGIkBgwOa6xuHfr3FyossA30VkHtCYPtGYA1BsIuSFSUUUdnJV\nV6fzfM+YGLjo1WQMRn7RCD7vMCyLRWvsW6NYu/TVE1NIMyM0nmAguKynsUy12v0P\nnXZULfkW9BhOSk6bzkBaqsUiocbRWP9csbrO02ZLRprus4Eo2EL2CYXmpQKBgQCk\n5Gt//ud2MJvTkubRSYHpsFyl7JswmxZD0rNRyPRtmq8KmQlRjdjsRzDtKL6B5CmM\nRzxWfuIt/HqNDWkSXrOK6V2879hOy8GWG7Vaj/I0TzijibT0l1vKpKji0wITJifg\n4WlS4kURuAr42e+q4H2QnI+hFmWgh+6vL/umm7oohQKBgFLuUeTBoS1Kw96RT8P1\nkuIYiB5MvjgNpphFppMC4QAjGWSgMqOtDV6LE+9I4SkEqAI0dqI/F63vJSBYr9dV\nmhvP5S+eIaVLv3LjIgKn+HaUkv3Vxfs1EnoYi/veBGd62aRXiwLW/QNj1Ego2bTB\nXW4n1tKyPeksLY83xmIzmSPV\n-----END PRIVATE KEY-----\n",
+  "client_email": "nutrientes@nutrientes-463413.iam.gserviceaccount.com",
+  "client_id": "104312324464470423822",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/nutrientes%40nutrientes-463413.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

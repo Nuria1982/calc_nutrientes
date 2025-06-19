@@ -13,13 +13,13 @@ library(bslib)
 library(shinythemes)
 library(shinyauthr)
 library(htmlwidgets)
-
 #library(RMySQL)
 library(shinyjs)
 library(bs4Dash)
 library(fresh)
 library(lubridate)
 library(png)
+library(httr)
 library(readxl)
 library(writexl)
 library(openxlsx)
@@ -30,6 +30,8 @@ library(kableExtra)
 library(stringr)
 library(purrr)
 library(glue)
+library(googlesheets4)
+library(gargle)
 
 # db <- dbConnect(
 #   RMySQL::MySQL(),
@@ -132,77 +134,80 @@ library(glue)
 #   dbExecute(conn, query)
 # }
 
-# Simulación de una base de datos de usuarios
-if (file.exists("base_usuarios")) {
-  db <- dbConnect(SQLite(), "base_usuarios")
-} else {
-  db <- dbConnect(SQLite(), "base_usuarios")
-  dbCreateTable(db, "user_base", c(
-    user = "TEXT",
-    password = "TEXT",
-    name = "TEXT",
-    email = "TEXT"
-  ))
-  dbWriteTable(db, "user_base", tibble(
-    user = c("user1", "user2"),
-    password = c(
-      sodium::password_store("pass1"),
-      sodium::password_store("pass2")
-    ),
-    name = c("User One", "User Two"),
-    email = c("user1@example.com", "user2@example.com")
-  ), append = TRUE)
-}
+###SQLite
 
-credentials_data <- reactiveVal(NULL)
+# # Simulación de una base de datos de usuarios
+# if (file.exists("base_usuarios")) {
+#   db <- dbConnect(SQLite(), "base_usuarios")
+# } else {
+#   db <- dbConnect(SQLite(), "base_usuarios")
+#   dbCreateTable(db, "user_base", c(
+#     user = "TEXT",
+#     password = "TEXT",
+#     name = "TEXT",
+#     email = "TEXT"
+#   ))
 
-get_user_base <- function() {
-  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-  user_base <- dbReadTable(db, "user_base")
-  return(user_base)
-}
-
+#   dbWriteTable(db, "user_base", tibble(
+#     user = c("user1", "user2"),
+#     password = c(
+#       sodium::password_store("pass1"),
+#       sodium::password_store("pass2")
+#     ),
+#     name = c("User One", "User Two"),
+#     email = c("user1@example.com", "user2@example.com")
+#   ), append = TRUE)
+# }
+# 
+# credentials_data <- reactiveVal(NULL)
+# 
+# get_user_base <- function() {
+#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+#   user_base <- dbReadTable(db, "user_base")
+#   return(user_base)
+# }
+#
 cookie_expiry <- 7
-
-add_sessionid_to_db <- function(user, sessionid, conn = db) {
-  tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
-    dbWriteTable(conn, "sessionids", ., append = TRUE)
-}
-
-get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
-  dbReadTable(conn, "sessionids") %>%
-    mutate(login_time = ymd_hms(login_time)) %>%
-    as_tibble() %>%
-    filter(login_time > now() - days(expiry))
-}
-
-save_new_user <- function(user, password, name, email, conn = NULL) {
-  if (is.null(conn)) {
-    conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-    on.exit(dbDisconnect(conn))
-  }
-  
-  dbWriteTable(conn, "user_base", tibble(
-    user = user,
-    password = sodium::password_store(password),
-    name = name,
-    email = email
-  ), append = TRUE)
-}
-
-user_base <- reactive({
-  db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-  on.exit(dbDisconnect(db))
-  dbReadTable(db, "user_base")
-})
-
-if (!"sessionids" %in% dbListTables(db)) {
-  dbCreateTable(db, "sessionids", c(
-    user = "TEXT",
-    sessionid = "TEXT",
-    login_time = "TEXT"
-  ))
-}
+#
+# add_sessionid_to_db <- function(user, sessionid, conn = db) {
+#   tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
+#     dbWriteTable(conn, "sessionids", ., append = TRUE)
+# }
+# 
+# get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
+#   dbReadTable(conn, "sessionids") %>%
+#     mutate(login_time = ymd_hms(login_time)) %>%
+#     as_tibble() %>%
+#     filter(login_time > now() - days(expiry))
+# }
+# 
+# save_new_user <- function(user, password, name, email, conn = NULL) {
+#   if (is.null(conn)) {
+#     conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+#     on.exit(dbDisconnect(conn))
+#   }
+# 
+#   dbWriteTable(conn, "user_base", tibble(
+#     user = user,
+#     password = sodium::password_store(password),
+#     name = name,
+#     email = email
+#   ), append = TRUE)
+# }
+# 
+# user_base <- reactive({
+#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
+#   on.exit(dbDisconnect(db))
+#   dbReadTable(db, "user_base")
+# })
+# 
+# if (!"sessionids" %in% dbListTables(db)) {
+#   dbCreateTable(db, "sessionids", c(
+#     user = "TEXT",
+#     sessionid = "TEXT",
+#     login_time = "TEXT"
+#   ))
+# }
 
 # user_base <- get_user_base()
 # saveRDS(user_base, "user_base.rds")
@@ -485,15 +490,15 @@ ui <- fluidPage(
                                        column(4,
                                               numericInput("nitrato_20",  
                                                            label = strong(HTML("N-nitrato (ppm) (0-20cm)")),
-                                                           value = 1,
+                                                           value = 0,
                                                            min = 0),
                                               numericInput("nitrato_40",  
                                                            label = strong(HTML("N-nitrato (ppm) (20-40cm)")),
-                                                           value = 1,
+                                                           value = 0,
                                                            min = 0),
                                               numericInput("nitrato_60",  
                                                            label = strong(HTML("N-nitrato (ppm) (40-60cm)")),
-                                                           value = 1,
+                                                           value = 0,
                                                            min = 0),
                                               numericInput("dens_ap",  
                                                            label = strong(HTML("Densidad aparente (g / cm<sup>3</sup>)")), 
@@ -779,11 +784,43 @@ ui <- fluidPage(
                                                "Soja" = "soja",
                                                "Trigo/Cebada" = "trigo",
                                                "Girasol" = "girasol",
-                                               "Papa" = "papa"
+                                               "Papa" = "papa",
+                                               "Doble cultivo" = "doble_cultivo"
                                              ),
                                              selected = "maiz"
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.cultivoS == 'doble_cultivo'",
+                                   fluidRow(
+                                     column(6,
+                                            selectInput(
+                                              "cultivoS_1",
+                                              label = strong("Seleccione el cultivo 1º:"),
+                                              choices = list(
+                                                "Maíz" = "maiz",
+                                                "Soja" = "soja",
+                                                "Trigo/Cebada" = "trigo",
+                                                "Girasol" = "girasol",
+                                                "Papa" = "papa"
+                                              )
+                                            )
+                                     ),
+                                     column(6,
+                                            selectInput(
+                                              "cultivoS_2",
+                                              label = strong("Seleccione el cultivo 2º:"),
+                                              choices = list(
+                                                "Maíz" = "maiz",
+                                                "Soja" = "soja",
+                                                "Trigo/Cebada" = "trigo",
+                                                "Girasol" = "girasol",
+                                                "Papa" = "papa"
+                                              )
+                                            )
+                                     )
+                                   )
                                  )
-                          )
+                                 )
                         ),
                         fluidRow(
                           column(6, 
@@ -829,11 +866,11 @@ ui <- fluidPage(
                                      )
                                  )
                           ),
-                          column(4, offset = 1,
+                          column(6, 
                                  div(style = "background-color: #DE9E3680; padding: 15px; border-radius: 10px;",
                                      h4(strong("Datos para el cálculo de la extracción de azufre")),
                                      fluidRow(
-                                       column(12,
+                                       column(6,
                                               numericInput("rendimiento_s",  
                                                            label = strong(HTML("Rendimiento objetivo (t/ha)")),
                                                            value = 1,
@@ -845,8 +882,24 @@ ui <- fluidPage(
                                                            step = 0.1,
                                                            min = 0
                                               )
-                                       )
+                                       ),
+                                       column(6,
+                                              conditionalPanel(
+                                                condition = "input.cultivoS == 'doble_cultivo'",
+                                                numericInput("rendimiento_s_2",  
+                                                             label = strong(HTML("Rendimiento objetivo cultivo 2º (t/ha)")),
+                                                             value = 1,
+                                                             min = 0
+                                                ),
+                                                numericInput("factor_s_2",  
+                                                             label = strong(HTML("Nutriente en grano cultivo 2º (kg S/t)")), 
+                                                             value = 0,
+                                                             step = 0.1,
+                                                             min = 0
+                                                )
+                                              )
                                      )
+                                 )
                                  ),
                                  br(),
                                  fluidRow(
@@ -859,8 +912,8 @@ ui <- fluidPage(
                                    )
                                  )
                                  
-                          )
-                        )
+                          ))
+                        
                ),
                tabPanel("Múltiples lotes", 
                         value = "seccion_azufre",
@@ -1295,29 +1348,148 @@ server <- function(input, output, session) {
   
   #SQLIte
   
+  # logout_init <- shinyauthr::logoutServer(
+  #   id = "logout",
+  #   active = reactive(credentials()$user_auth)
+  # )
+  # 
+  # 
+  # credentials <- shinyauthr::loginServer(
+  #   id = "login",
+  #   data = get_user_base(),
+  #   user_col = user,
+  #   pwd_col = password,
+  #   sodium_hashed = TRUE,
+  #   cookie_logins = TRUE,
+  #   sessionid_col = sessionid,
+  #   cookie_getter = get_sessionids_from_db,
+  #   cookie_setter = add_sessionid_to_db,
+  #   log_out = reactive(logout_init())
+  # )
+  # 
+  # 
+  # 
+  # observeEvent(input$abrir_registro, {
+  #   # Mostrar el formulario de registro en un modal
+  #   showModal(
+  #     modalDialog(
+  #       title = "Formulario de Registro",
+  #       textInput("nombre", "Nombre Completo"),
+  #       textInput("usuario", "Nombre de Usuario"),
+  #       textInput("email", "Correo Electrónico"),
+  #       passwordInput("password", "Contraseña"),
+  #       passwordInput("confirmar_password", "Confirmar Contraseña"),
+  #       footer = tagList(
+  #         modalButton("Cancelar"),
+  #         actionButton("enviar_registro", "Registrar")
+  #       )
+  #     )
+  #   )
+  # })
+  # 
+  # # Registrar el nuevo usuario
+  # observeEvent(input$enviar_registro, {
+  #   if (input$password != input$confirmar_password) {
+  #     showModal(modalDialog(
+  #       title = "Error",
+  #       "Las contraseñas no coinciden.",
+  #       easyClose = TRUE,
+  #       footer = NULL
+  #     ))
+  #     return()
+  #   }
+  # 
+  #   if (input$usuario %in% get_user_base()$user) {
+  #     showNotification("El usuario ya está registrado.", type = "error")
+  #     return()
+  #   }
+  # 
+  #   save_new_user(
+  #     user = input$usuario,
+  #     password = input$password,
+  #     name = input$nombre,
+  #     email = input$email
+  #   )
+  # 
+  #   print(get_user_base())
+  #   credentials_data(get_user_base())
+  # 
+  #   session$reload()
+  # 
+  #   removeModal()
+  #   showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
+  # })
+  # 
+  # 
+  # observe({
+  #   if (credentials()$user_auth) {
+  #     updateTabsetPanel(session, "main_tabs", selected = "Principal")
+  #   } else {
+  #     updateTabsetPanel(session, "main_tabs", selected = NULL)
+  #   }
+  # })
+  # 
+  # observeEvent(input$main_tabs, {
+  #   if (!credentials()$user_auth && input$main_tabs != "Principal") {
+  #     showModal(modalDialog(
+  #       title = "Acceso restringido",
+  #       "Por favor inicie sesión para acceder a esta pestaña.",
+  #       easyClose = TRUE,
+  #       footer = NULL
+  #     ))
+  #     updateTabsetPanel(session, "main_tabs", selected = "Principal")
+  #   }
+  # })
+
+  # # Guardar datos del usuario al salir
+  # observeEvent(logout_init(), {
+  #   save_user_data(credentials()$info$user, user_data$data)
+  # })
+  
+  # Configurar acceso a Google Sheets
+  gs4_auth(path = "nutrientes-463413-a5b1e705018f.json") # correo autorizado
+  sheet_id <- "1JFsJnHnUkRmSfOP2kcfcNa-XQBXhkvmfifj3zNnfbIU" # ID de la hoja de Google
+  
+
+  # Función para obtener la base de datos de usuarios desde Google Sheets
+  get_user_base <- function() {
+    read_sheet(sheet_id) 
+    # %>%
+    #   mutate(password = sodium::password_store(password)) # Asegura que las contraseñas estén encriptadas
+  }
+
+  # Función para guardar un nuevo usuario en Google Sheets
+  save_new_user <- function(user, password, name, email) {
+    new_user <- data.frame(
+      user = user,
+      password = sodium::password_store(password), # Encriptar contraseña
+      name = name,
+      email = email,
+      sessionid = NA, # Inicializa columna para session IDs
+      stringsAsFactors = FALSE
+    )
+    sheet_append(sheet_id, new_user)
+  }
+  
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
-  
-  
+
   credentials <- shinyauthr::loginServer(
     id = "login",
     data = get_user_base(),
     user_col = user,
     pwd_col = password,
     sodium_hashed = TRUE,
-    cookie_logins = TRUE,
+    cookie_logins = FALSE,
     sessionid_col = sessionid,
-    cookie_getter = get_sessionids_from_db,
-    cookie_setter = add_sessionid_to_db,
+    
     log_out = reactive(logout_init())
   )
-  
-  
-  
+
+  # Modal para el registro de usuarios
   observeEvent(input$abrir_registro, {
-    # Mostrar el formulario de registro en un modal
     showModal(
       modalDialog(
         title = "Formulario de Registro",
@@ -1333,8 +1505,8 @@ server <- function(input, output, session) {
       )
     )
   })
-  
-  # Registrar el nuevo usuario
+
+  # Registrar nuevo usuario
   observeEvent(input$enviar_registro, {
     if (input$password != input$confirmar_password) {
       showModal(modalDialog(
@@ -1345,53 +1517,43 @@ server <- function(input, output, session) {
       ))
       return()
     }
-    
-    if (input$usuario %in% get_user_base()$user) {
+
+    user_base <- get_user_base()
+    if (input$usuario %in% user_base$user) {
       showNotification("El usuario ya está registrado.", type = "error")
       return()
     }
-    
+
     save_new_user(
       user = input$usuario,
       password = input$password,
       name = input$nombre,
       email = input$email
     )
-    
-    print(get_user_base())
-    credentials_data(get_user_base())
-    
-    session$reload() 
-    
+
+
     removeModal()
     showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
   })
   
+  user_session <- reactiveValues(authenticated = FALSE, user = NULL)
+  
+  observeEvent(credentials()$user_auth, {
+    if (credentials()$user_auth) {
+      user_session$authenticated <- TRUE
+      user_session$user <- credentials()$info$user
+    } else {
+      user_session$authenticated <- FALSE
+      user_session$user <- NULL
+    }
+  })
   
   observe({
-    if (credentials()$user_auth) {
-      updateTabsetPanel(session, "main_tabs", selected = "Principal")
-    } else {
-      updateTabsetPanel(session, "main_tabs", selected = NULL)
+    if (!user_session$authenticated) {
+      showNotification("Su sesión ha expirado. Por favor, inicie sesión nuevamente.", type = "warning")
     }
   })
-  
-  observeEvent(input$main_tabs, {
-    if (!credentials()$user_auth && input$main_tabs != "Principal") {
-      showModal(modalDialog(
-        title = "Acceso restringido",
-        "Por favor inicie sesión para acceder a esta pestaña.",
-        easyClose = TRUE,
-        footer = NULL
-      ))
-      updateTabsetPanel(session, "main_tabs", selected = "Principal")
-    }
-  })
-  
-  # # Guardar datos del usuario al salir
-  # observeEvent(logout_init(), {
-  #   save_user_data(credentials()$info$user, user_data$data)
-  # })
+
   
   ################################################################################
   ## Carga de datos ######
@@ -1764,13 +1926,13 @@ server <- function(input, output, session) {
   })
   
   output$zonas_ui <- renderUI({
-    # # Validar que input$nan sea válido y que se pueda evaluar
-    # validate(
-    #   need(!is.null(input$nan) && input$nan != "", "Debe ingresar un valor de Nan")
-    # )
-    # 
+    # Validar que input$nan sea válido y que se pueda evaluar
+    validate(
+      need(!is.null(input$nan) && input$nan != "", "Debe ingresar un valor de Nan")
+    )
+
     # Verificar el valor del cultivo seleccionado
-    if (input$cultivo == "Maiz") {
+    if (input$cultivo == "Maiz" && !is.null(input$nan) && input$nan >= 0) {
       tagList( 
         selectInput("zona_maiz", 
                     label = strong("Seleccione la zona"),
@@ -1784,20 +1946,22 @@ server <- function(input, output, session) {
         conditionalPanel(
           condition = "input.zona_maiz == 'Otras'",
           numericInput("valor_otras_zona", 
-                       label = strong("Ingrese un valor personalizado para la zona"), 
+                       label = strong("Ingrese el valor del factor de mineralización (kg N/ ppm de Nan)"), 
                        value = 0, # Valor inicial por defecto
-                       min = 0)
+                       min = 0,
+                       step = 0.1)
         )
       )
-    } else if (!is.null(input$nan) && input$nan > 0 && input$cultivo != "Maiz") {
+    } else if (input$cultivo != "Maiz" && !is.null(input$nan) && input$nan > 0) {
       # Para otros cultivos, mostrar el campo de entrada numérica
       numericInput("valor_no_maiz", 
-                   label = strong("Ingrese el valor para la mineralización (kg N / ppm)"), 
+                   label = strong("Ingrese el valor del factor de mineralización (kg N/ ppm de Nan)"), 
                    value = switch(input$cultivo,
                                   "Trigo" = 2.2,
                                   "Papa" = 3.2,
                                   0), # Valor por defecto para cultivos no especificados
-                   min = 0)
+                   min = 0,
+                   step = 0.1)
     } else {
       NULL # No mostrar nada si las condiciones no se cumplen
     }
@@ -1825,22 +1989,19 @@ server <- function(input, output, session) {
     }
   })
   
-  
   nan_total <- reactive({
-    req(input$nan, mineralizacion())
-    if (!is.na(input$nan) && input$nan > 0) {
-      input$nan * mineralizacion()
-    } else {
-      NULL # Devuelve NULL si el valor de input$nan no es válido
-    }
+    
+    nan_value <- input$nan
+    
+    nan_value * mineralizacion()
   })
   
   output$nan_total <- renderUI({
     valor <- nan_total()
-    if (!is.null(valor)) {
+    if (!is.null(valor) && !is.na(valor) && valor > 0) {
       round(valor, 0)
     } else {
-      HTML("<strong>El modelo considera el valor medio de mineralización de la región.</strong>")
+      HTML("<strong>Sin valor de Nan. La mineralización es igual a la ineficiencia de uso de nitrógeno.</strong>")
     }
   })
   
@@ -1870,16 +2031,27 @@ server <- function(input, output, session) {
   
   
   ofertaN <- reactive({
-    nitrogeno_disp() + nan_total() + efecto_antecesor()
+   
+    # Capturar los valores de los componentes
+    nitrogeno <- ifelse(!is.null(nitrogeno_disp()) && !is.na(nitrogeno_disp()), nitrogeno_disp(), 0)
+    mineralizacion <- ifelse(!is.null(nan_total()) && !is.na(nan_total()), nan_total(), 0)
+    efecto <- ifelse(!is.null(efecto_antecesor()) && !is.na(efecto_antecesor()), efecto_antecesor(), 0)
+    
+    # Sumar solo los valores que no son NULL
+    suma_componentes <- sum(c(nitrogeno, mineralizacion, efecto), na.rm = TRUE)
+    
+    suma_componentes
   })
   
   output$ofertaN <- renderUI({
+    valor_oferta <- ofertaN()
+    
     div(
       class = "value-box",
       style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #FF9914; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
       div(
         style = "font-size: 30px; font-weight: bold;",
-        paste(ofertaN(), "kg N / ha")
+        paste(round(valor_oferta, 0), "kg N / ha")
       ),
       div(
         style = "font-size: 18px; font-weight: bold; margin-bottom: 6px; text-align: center;",
@@ -1931,7 +2103,7 @@ server <- function(input, output, session) {
     danger_range <- c((input$rendimiento * factor), max_val)
     
     # Renderizar la gauge con el valor máximo calculado
-    gauge(dosisN(), min = 0, max = max_val, 
+    gauge(round(dosisN(), 0), min = 0, max = max_val, 
           gaugeSectors(success = success_range, danger = danger_range)
     )
   })
@@ -2306,7 +2478,7 @@ server <- function(input, output, session) {
     } else {
       div(
         class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 5px;",
         div(
           style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
           HTML(paste("<strong>Dosis de suficiencia (kg P / ha):</strong> "
@@ -2316,10 +2488,14 @@ server <- function(input, output, session) {
           style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
           
           div(
-            style = "display: flex; flex-direction: column; align-items: flex-start;",
+            style = "display: flex; flex-direction: column; align-items: center;",
             div(
               style = "font-size: 25px; font-weight: bold;",
               paste(dosis_vals$min, "-", dosis_vals$max)
+            ),
+            div(
+              style = "font-size: 15px; font-weight: normal; color: #dddddd;",
+              HTML(paste0("(", round(dosis_vals$min * 2.29, 2), " - ", round(dosis_vals$max * 2.29, 2), " kg P<sub>2</sub>O<sub>5</sub>)"))
             )
           ),
           div(
@@ -2362,7 +2538,7 @@ server <- function(input, output, session) {
     } else if (cultivo_actual == "girasol") {
       updateNumericInput(session, "NivelP", value = 20)
       updateNumericInput(session, "factor_construccion", value = 3)
-      updateNumericInput(session, "factor_mantenimiento", value = 6)
+      updateNumericInput(session, "factor_mantenimiento", value = 4)
       
     } else if (cultivo_actual == "papa") {
       updateNumericInput(session, "NivelP", value = 30)
@@ -2414,7 +2590,7 @@ server <- function(input, output, session) {
       updateNumericInput(session, "factor_mantenimiento_2", value = 3.2)
       
     } else if (input$cultivoP_2 == "girasol") {
-      updateNumericInput(session, "factor_mantenimiento_2", value = 6)
+      updateNumericInput(session, "factor_mantenimiento_2", value = 4)
       
     } else if (input$cultivoP_2 == "papa") {
       updateNumericInput(session, "factor_mantenimiento_2", value = 0.45)
@@ -2452,7 +2628,7 @@ server <- function(input, output, session) {
     
     div(
       class = "value-box",
-      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #BC6C25; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #BC6C25; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
       
       # Título
       div(
@@ -2463,14 +2639,23 @@ server <- function(input, output, session) {
         style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
         
         div(
+          style = "display: flex; flex-direction: column; align-items: center;",
+        
+        div(
           style = "font-size: 30px; font-weight: bold;",
           round(dosis_valor, 0)
         ),
         div(
+          style = "font-size: 15px; font-weight: normal; color: #dddddd;",
+          HTML(paste0("(", round(dosis_valor * 2.29, 2), " kg P<sub>2</sub>O<sub>5</sub>)"))
+        )
+        ),
+        
+        div(
           class = "icon-container",
           style = "font-size: 40px;",
           icon("gears")
-        )
+      )
       )
     )
   })
@@ -2636,25 +2821,48 @@ server <- function(input, output, session) {
   
   ############################ Azufre #########################################
   
-  observeEvent(input$cultivoS, {  
-    req(input$cultivoS)  
+  observe({
     
-    if (input$cultivoS == "maiz") {
+    cultivo_actual <- if (input$cultivoS == "doble_cultivo") {
+      req(input$cultivoS_1)  
+      input$cultivoS_1
+    } else {
+      input$cultivoS
+    } 
+    
+    if (cultivo_actual == "maiz") {
       updateNumericInput(session, "factor_s", value = 1.2)
       
-    } else if (input$cultivoS == "soja") {
+    } else if (cultivo_actual == "soja") {
       updateNumericInput(session, "factor_s", value = 3.5)
       
-    } else if (input$cultivoS == "trigo") {
+    } else if (cultivo_actual == "trigo") {
       updateNumericInput(session, "factor_s", value = 1.5)
       
-    } else if (input$cultivoS == "girasol") {
+    } else if (cultivo_actual == "girasol") {
       updateNumericInput(session, "factor_s", value = 2.5)
       
-    } else if (input$cultivoS == "papa") {
+    } else if (cultivo_actual == "papa") {
       updateNumericInput(session, "factor_s", value = 0.3)
     }
   })
+  
+  observeEvent(input$cultivoS_2, {  
+    req(input$cultivoS_2)  
+    
+    if (input$cultivoS_2 == "maiz") {
+      updateNumericInput(session, "factor_s_2", value = 1.2)
+    } else if (input$cultivoS_2 == "soja") {
+      updateNumericInput(session, "factor_s_2", value = 3.5)
+    } else if (input$cultivoS_2 == "trigo") {
+      updateNumericInput(session, "factor_s_2", value = 1.5)
+    } else if (input$cultivoS_2 == "girasol") {
+      updateNumericInput(session, "factor_s_2", value = 2.5)
+    } else if (input$cultivoS_2 == "papa") {
+      updateNumericInput(session, "factor_s_2", value = 0.3)
+    }
+  })
+  
   
   azufre_disp <- reactive({
     densidad_aparente <- ifelse(!is.null(input$dens_ap_s) && input$dens_ap_s != 0, input$dens_ap_s, 1.2)
@@ -2688,8 +2896,21 @@ server <- function(input, output, session) {
   dosis_s <- reactive({
     req(input$cultivoS, input$rendimiento_s, input$factor_s)  
     
-    input$rendimiento_s * input$factor_s
+    if (input$cultivoS == "doble_cultivo") {
+      req(input$rendimiento_s_2, input$factor_s_2)
+      
+      dosis_cultivo_1 <- input$rendimiento_s * input$factor_s
+      dosis_cultivo_2 <- input$rendimiento_s_2 * input$factor_s_2
+      
+      dosis_s <- dosis_cultivo_1 + dosis_cultivo_2
+      
+    } else {
+      
+      dosis_s <- input$rendimiento_s * input$factor_s
+    }
+    return(dosis_s)
   })
+  
   
   output$dosis_s <- renderUI({
     # Verificar si se ingresaron valores para azufre_20 y nan_s
@@ -3777,8 +3998,8 @@ shinyApp(ui, server )
 # rsconnect::deployApp()
 # renv::init()
 # renv::restore()
+ 
 # renv::snapshot() #para capturar todas las dependencias 
-
 # renv::status() #para ver si hay paquetes no instalados
 
 # rsconnect::setAccountInfo(name='intabalcarce',
