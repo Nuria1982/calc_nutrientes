@@ -1450,7 +1450,6 @@ server <- function(input, output, session) {
   gs4_auth(path = "nutrientes-463413-a5b1e705018f.json") # correo autorizado
   sheet_id <- "1JFsJnHnUkRmSfOP2kcfcNa-XQBXhkvmfifj3zNnfbIU" # ID de la hoja de Google
   
-
   # Función para obtener la base de datos de usuarios desde Google Sheets
   get_user_base <- function() {
     read_sheet(sheet_id) 
@@ -1484,10 +1483,30 @@ server <- function(input, output, session) {
     sodium_hashed = TRUE,
     cookie_logins = FALSE,
     sessionid_col = sessionid,
+    # cookie_getter = get_sessionids_from_db,
+    # cookie_setter = add_sessionid_to_db,
     
     log_out = reactive(logout_init())
   )
-
+  
+    
+  validate_password <- function(password) {
+    if (nchar(password) < 8) {
+      return("Debe tener al menos 8 caracteres.")
+    }
+    if (!grepl("[A-Z]", password)) {
+      return("Debe incluir al menos una letra mayúscula.")
+    }
+    if (!grepl("[!@#$%^&*(),.?\":{}|<>]", password)) {
+      return("Debe incluir al menos un símbolo (e.g., !, @, #, etc.).")
+    }
+    if (!grepl("[0-9]", password)) {
+      return("Debe incluir al menos un número.")
+    }
+    return(NULL)
+  }
+  
+  
   # Modal para el registro de usuarios
   observeEvent(input$abrir_registro, {
     showModal(
@@ -1496,7 +1515,13 @@ server <- function(input, output, session) {
         textInput("nombre", "Nombre Completo"),
         textInput("usuario", "Nombre de Usuario"),
         textInput("email", "Correo Electrónico"),
-        passwordInput("password", "Contraseña"),
+        htmlOutput("email_message"),
+        passwordInput("password", HTML("Contraseña <span style='color:red;'>*</span>")),
+        div(
+          style = "font-size: 12px; color: gray; margin-top: -10px; margin-bottom: 15px;",
+          "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, un número, y un símbolo (e.g., !, @, #, etc.)."
+        ),
+        htmlOutput("password_message"), 
         passwordInput("confirmar_password", "Confirmar Contraseña"),
         footer = tagList(
           modalButton("Cancelar"),
@@ -1505,9 +1530,54 @@ server <- function(input, output, session) {
       )
     )
   })
-
+  
+  observe({
+    req(input$email) # Asegura que email no sea NULL
+    msg <- validate_email(input$email)
+    output$email_message <- renderUI({
+      if (is.null(msg)) {
+        HTML("") # No hay errores, no mostrar mensaje
+      } else {
+        HTML(paste("<div style='color:black; font-weight:bold;'>", msg, "</div>"))
+      }
+    })
+  })
+    
+    
+  # Validar contraseña en tiempo real
+  observe({
+    req(input$password) # Asegura que password no sea NULL
+    msg <- validate_password(input$password)
+    output$password_message <- renderUI({
+      if (is.null(msg)) {
+        HTML("") # No hay errores, no mostrar mensaje
+      } else {
+        HTML(paste("<div style='color:red; font-weight:bold;'>", msg, "</div>"))
+      }
+    })
+  })
+  
+  validate_email <- function(email) {
+    if (!grepl("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", email)) {
+      return("El correo debe tener un formato válido, por ejemplo, usuario@dominio.com.")
+    }
+    return(NULL) # Sin errores
+  }
+  
   # Registrar nuevo usuario
   observeEvent(input$enviar_registro, {
+    
+    email_error <- validate_email(input$email)
+    if (!is.null(email_error)) {
+      showModal(modalDialog(
+        title = "Error en el correo",
+        email_error,
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      return()
+    }
+    
     if (input$password != input$confirmar_password) {
       showModal(modalDialog(
         title = "Error",
@@ -1517,6 +1587,19 @@ server <- function(input, output, session) {
       ))
       return()
     }
+    
+    # Valida la fortaleza de la contraseña
+    password_error <- validate_password(input$password)
+    if (!is.null(password_error)) {
+      showModal(modalDialog(
+        title = "Error en la contraseña",
+        password_error,
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      return()
+    }
+    
 
     user_base <- get_user_base()
     if (input$usuario %in% user_base$user) {
@@ -1545,6 +1628,26 @@ server <- function(input, output, session) {
     } else {
       user_session$authenticated <- FALSE
       user_session$user <- NULL
+    }
+  })
+  
+  observe({
+    if (credentials()$user_auth) {
+      updateTabsetPanel(session, "main_tabs", selected = "Principal")
+    } else {
+      updateTabsetPanel(session, "main_tabs", selected = NULL)
+    }
+  })
+
+  observeEvent(input$main_tabs, {
+    if (!credentials()$user_auth && input$main_tabs != "Principal") {
+      showModal(modalDialog(
+        title = "Acceso restringido",
+        "Por favor inicie sesión para acceder a esta pestaña.",
+        easyClose = TRUE,
+        footer = NULL
+      ))
+      updateTabsetPanel(session, "main_tabs", selected = "Principal")
     }
   })
   
@@ -1659,9 +1762,9 @@ server <- function(input, output, session) {
       
       addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:20), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general2, rows = c(2, 5), cols = c(1:20), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8,13), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8,13), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:12, 14:20), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8,14), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8,14), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:13, 15:20), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general6, rows = c(1), cols = c(9, 16:20), gridExpand = TRUE)
       
       last_row <- nrow(datos) + 3
@@ -2495,7 +2598,7 @@ server <- function(input, output, session) {
             ),
             div(
               style = "font-size: 15px; font-weight: normal; color: #dddddd;",
-              HTML(paste0("(", round(dosis_vals$min * 2.29, 2), " - ", round(dosis_vals$max * 2.29, 2), " kg P<sub>2</sub>O<sub>5</sub>)"))
+              HTML(paste0("(", round(dosis_vals$min * 2.29, 0), " - ", round(dosis_vals$max * 2.29, 0), " kg P<sub>2</sub>O<sub>5</sub>)"))
             )
           ),
           div(
@@ -2647,7 +2750,7 @@ server <- function(input, output, session) {
         ),
         div(
           style = "font-size: 15px; font-weight: normal; color: #dddddd;",
-          HTML(paste0("(", round(dosis_valor * 2.29, 2), " kg P<sub>2</sub>O<sub>5</sub>)"))
+          HTML(paste0("(", round(dosis_valor * 2.29, 0), " kg P<sub>2</sub>O<sub>5</sub>)"))
         )
         ),
         
