@@ -32,6 +32,39 @@ library(purrr)
 library(glue)
 library(googlesheets4)
 library(gargle)
+library(gmailr)
+library(blastula)
+library(stringi)
+
+
+# gm_auth_configure(path = "client_secret_553119922184-3741qfnujvvmphnk6bp9jm8q3t61tri8.apps.googleusercontent.com.json")
+# gm_auth()
+# 
+# # URL base para confirmar el registro
+# app_base_url <- "https://intabalcarce.shinyapps.io/Nutrientes_suelo/" # Cambia por la URL de tu app
+# 
+# send_confirmation_email <- function(to_email, token) {
+#   # Construir el enlace con el token para confirmación
+#   confirm_link <- glue("{app_base_url}?token={token}")
+#   
+#   # Construir el email MIME
+#   email <- gm_mime() %>%
+#     gm_to(to_email) %>%
+#     gm_from(smtp_user) %>%
+#     gm_subject("Confirma tu registro") %>%
+#     gm_text_body(
+#       glue(
+#         "¡Bienvenido/a a nuestra app!\n\n",
+#         "Por favor, haz clic en el siguiente enlace para confirmar tu registro:\n",
+#         "{confirm_link}\n\n",
+#         "Si no solicitaste este registro, ignora este correo."
+#       )
+#     )
+#   
+#   # Enviar email
+#   gm_send_message(email)
+# }
+
 
 
 #
@@ -1070,43 +1103,28 @@ server <- function(input, output, session) {
     read_sheet(sheet_id) 
   }
   
-  user_base <- get_user_base()
+  user_base <- reactiveVal(get_user_base())
+  
   
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
+  
+  user_session <- reactiveValues(authenticated = FALSE, user = NULL)
 
   credentials <- shinyauthr::loginServer(
     id = "login",
-    data = user_base,
-    user_col = user,
-    pwd_col = password,
+    data = isolate(user_base()),
+    user_col = "user",
+    pwd_col = "password",
     sodium_hashed = TRUE,
     cookie_logins = FALSE,
     sessionid_col = sessionid,
-    # cookie_getter = get_sessionids_from_db,
-    # cookie_setter = add_sessionid_to_db,
     
     log_out = reactive(logout_init())
   )
  
-  
-  # Guardar nuevo usuario 
-  save_new_user <- function(user, password, name, email) {
-    new_user <- data.frame(
-      user = user,
-      password = sodium::password_store(password), 
-      name = name,
-      email = email,
-      sessionid = NA, 
-      stringsAsFactors = FALSE
-    )
-    sheet_append(sheet_id, new_user)
-    
-    }
-  
-    
   validate_password <- function(password) {
     if (nchar(password) < 8) {
       return("Debe tener al menos 8 caracteres.")
@@ -1123,8 +1141,75 @@ server <- function(input, output, session) {
     return(NULL)
   }
   
+   # Validar contraseña en tiempo real
+  observe({
+    req(input$password) # Asegura que password no sea NULL
+    msg <- validate_password(input$password)
+    output$password_message <- renderUI({
+      if (is.null(msg)) {
+        HTML("") # No hay errores, no mostrar mensaje
+      } else {
+        HTML(paste("<div style='color:red; font-weight:bold;'>", msg, "</div>"))
+      }
+    })
+  })
   
-  # Modal para el registro de usuarios
+  
+  validate_email <- function(email) {
+    if (!grepl("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", email)) {
+      return("El correo debe tener un formato válido, por ejemplo, usuario@dominio.com.")
+    }
+    return(NULL) # Sin errores
+  }
+  
+  observe({
+    req(input$email) # Asegura que email no sea NULL
+    msg <- validate_email(input$email)
+    output$email_message <- renderUI({
+      if (is.null(msg)) {
+        HTML("") # No hay errores, no mostrar mensaje
+      } else {
+        HTML(paste("<div style='color:black; font-weight:bold;'>", msg, "</div>"))
+      }
+    })
+  })
+  
+  
+  # Guardar nuevo usuario 
+  save_new_user <- function(user, password, name, email) {
+    new_user <- data.frame(
+      user = user,
+      password = sodium::password_store(password), 
+      name = name,
+      email = email,
+      sessionid = NA,
+      # verified = FALSE,
+      # token = token, 
+      stringsAsFactors = FALSE
+    )
+    sheet_append(sheet_id, new_user)
+    
+    user_base(get_user_base())
+    
+    }
+
+  # # Confirmar registro
+  # observeEvent(input$token, {
+  #   token <- input$token
+  #   base <- user_base()
+  #   
+  #   if (token %in% base$token) {
+  #     user_row <- which(base$token == token)
+  #     base$verified[user_row] <- TRUE
+  #     write_sheet(base, sheet_id)
+  #     showNotification("¡Correo verificado con éxito! Ahora puedes iniciar sesión.", type = "message")
+  #   } else {
+  #     showNotification("Token no válido o expirado.", type = "error")
+  #   }
+  # })
+  
+  
+  # Registro de usuarios
   observeEvent(input$abrir_registro, {
     showModal(
       modalDialog(
@@ -1133,7 +1218,7 @@ server <- function(input, output, session) {
         textInput("usuario", "Nombre de Usuario"),
         textInput("email", "Correo Electrónico"),
         htmlOutput("email_message"),
-        passwordInput("password", HTML("Contraseña <span style='color:red;'>*</span>")),
+        passwordInput("password", "Contraseña"),
         div(
           style = "font-size: 12px; color: gray; margin-top: -10px; margin-bottom: 15px;",
           "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, un número, y un símbolo (e.g., !, @, #, etc.)."
@@ -1148,43 +1233,11 @@ server <- function(input, output, session) {
     )
   })
   
-  observe({
-    req(input$email) # Asegura que email no sea NULL
-    msg <- validate_email(input$email)
-    output$email_message <- renderUI({
-      if (is.null(msg)) {
-        HTML("") # No hay errores, no mostrar mensaje
-      } else {
-        HTML(paste("<div style='color:black; font-weight:bold;'>", msg, "</div>"))
-      }
-    })
-  })
-    
-    
-  # Validar contraseña en tiempo real
-  observe({
-    req(input$password) # Asegura que password no sea NULL
-    msg <- validate_password(input$password)
-    output$password_message <- renderUI({
-      if (is.null(msg)) {
-        HTML("") # No hay errores, no mostrar mensaje
-      } else {
-        HTML(paste("<div style='color:red; font-weight:bold;'>", msg, "</div>"))
-      }
-    })
-  })
-  
-  validate_email <- function(email) {
-    if (!grepl("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", email)) {
-      return("El correo debe tener un formato válido, por ejemplo, usuario@dominio.com.")
-    }
-    return(NULL) # Sin errores
-  }
-  
-  # Registrar nuevo usuario
+  # Envar registro de nuevo usuario
   observeEvent(input$enviar_registro, {
     
     email_error <- validate_email(input$email)
+    
     if (!is.null(email_error)) {
       showModal(modalDialog(
         title = "Error en el correo",
@@ -1217,23 +1270,28 @@ server <- function(input, output, session) {
       return()
     }
     
-
-    user_base <- get_user_base()
-    if (input$usuario %in% user_base$user) {
+    
+    if (input$usuario %in% user_base()$user) {
       showNotification("El usuario ya está registrado.", type = "error")
       return()
     }
-
+    
+    # token <- stri_rand_strings(1, 30)
+    
     save_new_user(
       user = input$usuario,
       password = input$password,
       name = input$nombre,
       email = input$email
+      # ,
+      # token = token
     )
-
-
+    
+    # send_confirmation_email(input$email, token)
+    
+    
+    showNotification("Usuario registrado con éxito. Inicie sesión para continuar.", type = "message")
     removeModal()
-    showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
   })
   
   user_session <- reactiveValues(authenticated = FALSE, user = NULL)
@@ -1255,7 +1313,7 @@ server <- function(input, output, session) {
       updateTabsetPanel(session, "main_tabs", selected = NULL)
     }
   })
-
+  
   observeEvent(input$main_tabs, {
     if (!credentials()$user_auth && input$main_tabs != "Principal") {
       showModal(modalDialog(
