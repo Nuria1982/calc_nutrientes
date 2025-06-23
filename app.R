@@ -1456,6 +1456,8 @@ server <- function(input, output, session) {
     # %>%
     #   mutate(password = sodium::password_store(password)) # Asegura que las contraseñas estén encriptadas
   }
+  
+  user_base <- get_user_base()
 
   # Función para guardar un nuevo usuario en Google Sheets
   save_new_user <- function(user, password, name, email) {
@@ -1477,7 +1479,7 @@ server <- function(input, output, session) {
 
   credentials <- shinyauthr::loginServer(
     id = "login",
-    data = get_user_base(),
+    data = user_base,
     user_col = user,
     pwd_col = password,
     sodium_hashed = TRUE,
