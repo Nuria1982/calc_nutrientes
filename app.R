@@ -33,193 +33,11 @@ library(glue)
 library(googlesheets4)
 library(gargle)
 
-# db <- dbConnect(
-#   RMySQL::MySQL(),
-#   dbname = "DB_nutrientes",
-#   host = "localhost", # Cambia esto si tu servidor no está en local
-#   port = 3306,        # Cambia el puerto si no usas el predeterminado
-#   user = "root",
-#   password = "root"
-# )
-# 
-# 
-# if (!"user_base" %in% dbListTables(db)) {
-#   dbExecute(db, "
-#     CREATE TABLE user_base (
-#       user VARCHAR(255),
-#       password VARCHAR(255),
-#       name VARCHAR(255),
-#       email VARCHAR(255)
-#     )
-#   ")
-# }
-# 
-# if (!"sessionids" %in% dbListTables(db)) {
-#   dbExecute(db, "
-#     CREATE TABLE sessionids (
-#       user VARCHAR(255),
-#       sessionid VARCHAR(255),
-#       login_time DATETIME
-#     )
-#   ")
-# }
-# 
-# # users <- tibble(
-# #   user = c('user1', 'user2'),
-# #   password = c(sodium::password_store("pass1"), sodium::password_store("pass2")),
-# #   name = c('User One', 'User Two'),
-# #   email = c('user1@example.com', 'user2@example.com')
-# # )
-# # 
-# # # Construir consulta
-# # query <- glue("INSERT INTO user_base (user, password, name, email) VALUES {values}",
-# #               values = paste0(
-# #                 "('", users$user, "', '", users$password, "', '", users$name, "', '", users$email, "')",
-# #                 collapse = ", "
-# #               )
-# # )
-# # 
-# # dbExecute(db, query)
-# 
-# get_user_base <- function() {
-#   db <- dbConnect(RMySQL::MySQL(), 
-#                   dbname = "DB_nutrientes",
-#                   host = "localhost", # Cambia esto si tu servidor no está en local
-#                   port = 3306,        # Cambia el puerto si no usas el predeterminado
-#                   user = "root",
-#                   password = "root")
-#   on.exit(dbDisconnect(db))
-#   dbGetQuery(db, "SELECT * FROM user_base")
-# }
-# 
-# add_sessionid_to_db <- function(user, sessionid, conn = db) {
-#   # Construye la consulta interpolando valores
-#   query <- glue::glue("
-#     INSERT INTO sessionids (user, sessionid, login_time)
-#     VALUES ('{user}', '{sessionid}', '{as.character(Sys.time())}')
-#   ")
-#   
-#   # Ejecuta la consulta
-#   dbExecute(conn, query)
-# }
-# 
-# get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
-#   # Construye la consulta dinámicamente
-#   query <- glue::glue("
-#     SELECT * FROM sessionids
-#     WHERE login_time > NOW() - INTERVAL {expiry} DAY
-#   ")
-#   
-#   # Ejecuta la consulta y retorna los resultados
-#   dbGetQuery(conn, query) %>%
-#     as_tibble()
-# }
-# 
-# save_new_user <- function(user, password, name, email, conn = db) {
-#   # Verificar si el usuario ya existe
-#   existing_users <- dbGetQuery(conn, glue::glue("
-#     SELECT COUNT(*) as count FROM user_base WHERE user = '{user}'
-#   "))
-#   
-#   if (existing_users$count > 0) {
-#     stop("El usuario ya está registrado.")
-#   }
-#   
-#   # Si no existe, insertar el nuevo usuario
-#   query <- glue::glue("
-#     INSERT INTO user_base (user, password, name, email)
-#     VALUES ('{user}', '{sodium::password_store(password)}', '{name}', '{email}')
-#   ")
-#   
-#   dbExecute(conn, query)
-# }
 
-###SQLite
-
-# # Simulación de una base de datos de usuarios
-# if (file.exists("base_usuarios")) {
-#   db <- dbConnect(SQLite(), "base_usuarios")
-# } else {
-#   db <- dbConnect(SQLite(), "base_usuarios")
-#   dbCreateTable(db, "user_base", c(
-#     user = "TEXT",
-#     password = "TEXT",
-#     name = "TEXT",
-#     email = "TEXT"
-#   ))
-
-#   dbWriteTable(db, "user_base", tibble(
-#     user = c("user1", "user2"),
-#     password = c(
-#       sodium::password_store("pass1"),
-#       sodium::password_store("pass2")
-#     ),
-#     name = c("User One", "User Two"),
-#     email = c("user1@example.com", "user2@example.com")
-#   ), append = TRUE)
-# }
-# 
-# credentials_data <- reactiveVal(NULL)
-# 
-# get_user_base <- function() {
-#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#   user_base <- dbReadTable(db, "user_base")
-#   return(user_base)
-# }
 #
 cookie_expiry <- 7
 #
-# add_sessionid_to_db <- function(user, sessionid, conn = db) {
-#   tibble(user = user, sessionid = sessionid, login_time = as.character(now())) %>%
-#     dbWriteTable(conn, "sessionids", ., append = TRUE)
-# }
-# 
-# get_sessionids_from_db <- function(conn = db, expiry = cookie_expiry) {
-#   dbReadTable(conn, "sessionids") %>%
-#     mutate(login_time = ymd_hms(login_time)) %>%
-#     as_tibble() %>%
-#     filter(login_time > now() - days(expiry))
-# }
-# 
-# save_new_user <- function(user, password, name, email, conn = NULL) {
-#   if (is.null(conn)) {
-#     conn <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#     on.exit(dbDisconnect(conn))
-#   }
-# 
-#   dbWriteTable(conn, "user_base", tibble(
-#     user = user,
-#     password = sodium::password_store(password),
-#     name = name,
-#     email = email
-#   ), append = TRUE)
-# }
-# 
-# user_base <- reactive({
-#   db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-#   on.exit(dbDisconnect(db))
-#   dbReadTable(db, "user_base")
-# })
-# 
-# if (!"sessionids" %in% dbListTables(db)) {
-#   dbCreateTable(db, "sessionids", c(
-#     user = "TEXT",
-#     sessionid = "TEXT",
-#     login_time = "TEXT"
-#   ))
-# }
 
-# user_base <- get_user_base()
-# saveRDS(user_base, "user_base.rds")
-
-# file.exists("base_usuarios")
-# db <- dbConnect(RSQLite::SQLite(), "base_usuarios")
-# dbListTables(db)
-# dbReadTable(db, "user_base")
-# #
-#  dbGetQuery(db, "PRAGMA table_info(user_base)")
-#  dbGetQuery(db, "SELECT * FROM user_base LIMIT 10")
-# dbDisconnect(db)
 
 dosis_data <- data.frame(
   cultivoP = c("soja", "soja", "soja", "soja", 
@@ -1241,236 +1059,18 @@ ui <- fluidPage(
 
 # Define server logic ----
 server <- function(input, output, session) {
-  
-  ####### Registro de usuario
-  #MySQL
-  # logout_init <- shinyauthr::logoutServer(
-  #   id = "logout",
-  #   active = reactive(credentials()$user_auth)
-  # )
-  #   
-  # 
-  #   credentials <- shinyauthr::loginServer(
-  #     id = "login",
-  #     data = get_user_base(),
-  #     user_col = user,
-  #     pwd_col = password,
-  #     sodium_hashed = TRUE,
-  #     cookie_logins = TRUE,
-  #     sessionid_col = sessionid,
-  #     cookie_getter = function() get_sessionids_from_db(db),
-  #     cookie_setter = function(user, sessionid) add_sessionid_to_db(user, sessionid, db),
-  #     log_out = reactive(logout_init())
-  #   )
-  #   
-  # 
-  #   
-  #   observeEvent(input$abrir_registro, {
-  #     # Mostrar el formulario de registro en un modal
-  #     showModal(
-  #       modalDialog(
-  #         title = "Formulario de Registro",
-  #         textInput("nombre", "Nombre Completo"),
-  #         textInput("usuario", "Nombre de Usuario"),
-  #         textInput("email", "Correo Electrónico"),
-  #         passwordInput("password", "Contraseña"),
-  #         passwordInput("confirmar_password", "Confirmar Contraseña"),
-  #         footer = tagList(
-  #           modalButton("Cancelar"),
-  #           actionButton("enviar_registro", "Registrar")
-  #         )
-  #       )
-  #     )
-  #   })
-  #   
-  #   # Registrar el nuevo usuario
-  #   observeEvent(input$enviar_registro, {
-  #     if (input$password != input$confirmar_password) {
-  #       showModal(modalDialog(
-  #         title = "Error",
-  #         "Las contraseñas no coinciden.",
-  #         easyClose = TRUE,
-  #         footer = NULL
-  #       ))
-  #       return()
-  #     }
-  #     
-  #     existing_users <- get_user_base()$user
-  #     if (input$usuario %in% existing_users) {
-  #       showNotification("El usuario ya está registrado.", type = "error")
-  #       return()
-  #     }
-  #     
-  #     
-  #     tryCatch({
-  #       save_new_user(
-  #         user = input$usuario,
-  #         password = input$password,
-  #         name = input$nombre,
-  #         email = input$email
-  #       )
-  #       
-  #       print(get_user_base())
-  #       showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
-  #       session$reload()
-  #       removeModal()
-  #     }, error = function(e) {
-  #       showModal(modalDialog(
-  #         title = "Error",
-  #         "Hubo un problema al registrar al usuario. Por favor intente de nuevo.",
-  #         easyClose = TRUE,
-  #         footer = NULL
-  #       ))
-  #       message("Error al registrar usuario: ", e$message)
-  #     })
-  #   })
-  # 
-  # 
-  #   observe({
-  #     if (credentials()$user_auth) {
-  #       updateTabsetPanel(session, "main_tabs", selected = "Principal")
-  #     } else {
-  #       updateTabsetPanel(session, "main_tabs", selected = NULL)
-  #     }
-  #   })
-  # 
-  #   observeEvent(input$main_tabs, {
-  #     if (!credentials()$user_auth && input$main_tabs != "Principal") {
-  #       showModal(modalDialog(
-  #         title = "Acceso restringido",
-  #         "Por favor inicie sesión para acceder a esta pestaña.",
-  #         easyClose = TRUE,
-  #         footer = NULL
-  #       ))
-  #       updateTabsetPanel(session, "main_tabs", selected = "Principal")
-  #     }
-  #   })
-  
-  #SQLIte
-  
-  # logout_init <- shinyauthr::logoutServer(
-  #   id = "logout",
-  #   active = reactive(credentials()$user_auth)
-  # )
-  # 
-  # 
-  # credentials <- shinyauthr::loginServer(
-  #   id = "login",
-  #   data = get_user_base(),
-  #   user_col = user,
-  #   pwd_col = password,
-  #   sodium_hashed = TRUE,
-  #   cookie_logins = TRUE,
-  #   sessionid_col = sessionid,
-  #   cookie_getter = get_sessionids_from_db,
-  #   cookie_setter = add_sessionid_to_db,
-  #   log_out = reactive(logout_init())
-  # )
-  # 
-  # 
-  # 
-  # observeEvent(input$abrir_registro, {
-  #   # Mostrar el formulario de registro en un modal
-  #   showModal(
-  #     modalDialog(
-  #       title = "Formulario de Registro",
-  #       textInput("nombre", "Nombre Completo"),
-  #       textInput("usuario", "Nombre de Usuario"),
-  #       textInput("email", "Correo Electrónico"),
-  #       passwordInput("password", "Contraseña"),
-  #       passwordInput("confirmar_password", "Confirmar Contraseña"),
-  #       footer = tagList(
-  #         modalButton("Cancelar"),
-  #         actionButton("enviar_registro", "Registrar")
-  #       )
-  #     )
-  #   )
-  # })
-  # 
-  # # Registrar el nuevo usuario
-  # observeEvent(input$enviar_registro, {
-  #   if (input$password != input$confirmar_password) {
-  #     showModal(modalDialog(
-  #       title = "Error",
-  #       "Las contraseñas no coinciden.",
-  #       easyClose = TRUE,
-  #       footer = NULL
-  #     ))
-  #     return()
-  #   }
-  # 
-  #   if (input$usuario %in% get_user_base()$user) {
-  #     showNotification("El usuario ya está registrado.", type = "error")
-  #     return()
-  #   }
-  # 
-  #   save_new_user(
-  #     user = input$usuario,
-  #     password = input$password,
-  #     name = input$nombre,
-  #     email = input$email
-  #   )
-  # 
-  #   print(get_user_base())
-  #   credentials_data(get_user_base())
-  # 
-  #   session$reload()
-  # 
-  #   removeModal()
-  #   showNotification("Registro exitoso. Ahora puede iniciar sesión.", type = "message")
-  # })
-  # 
-  # 
-  # observe({
-  #   if (credentials()$user_auth) {
-  #     updateTabsetPanel(session, "main_tabs", selected = "Principal")
-  #   } else {
-  #     updateTabsetPanel(session, "main_tabs", selected = NULL)
-  #   }
-  # })
-  # 
-  # observeEvent(input$main_tabs, {
-  #   if (!credentials()$user_auth && input$main_tabs != "Principal") {
-  #     showModal(modalDialog(
-  #       title = "Acceso restringido",
-  #       "Por favor inicie sesión para acceder a esta pestaña.",
-  #       easyClose = TRUE,
-  #       footer = NULL
-  #     ))
-  #     updateTabsetPanel(session, "main_tabs", selected = "Principal")
-  #   }
-  # })
 
-  # # Guardar datos del usuario al salir
-  # observeEvent(logout_init(), {
-  #   save_user_data(credentials()$info$user, user_data$data)
-  # })
   
-  # Configurar acceso a Google Sheets
+  # Google Sheets
   gs4_auth(path = "nutrientes-463413-a5b1e705018f.json") # correo autorizado
   sheet_id <- "1JFsJnHnUkRmSfOP2kcfcNa-XQBXhkvmfifj3zNnfbIU" # ID de la hoja de Google
   
-  # Función para obtener la base de datos de usuarios desde Google Sheets
+  # Obtener la base de datos de usuarios 
   get_user_base <- function() {
     read_sheet(sheet_id) 
-    # %>%
-    #   mutate(password = sodium::password_store(password)) # Asegura que las contraseñas estén encriptadas
   }
   
   user_base <- get_user_base()
-
-  # Función para guardar un nuevo usuario en Google Sheets
-  save_new_user <- function(user, password, name, email) {
-    new_user <- data.frame(
-      user = user,
-      password = sodium::password_store(password), # Encriptar contraseña
-      name = name,
-      email = email,
-      sessionid = NA, # Inicializa columna para session IDs
-      stringsAsFactors = FALSE
-    )
-    sheet_append(sheet_id, new_user)
-  }
   
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
@@ -1490,6 +1090,21 @@ server <- function(input, output, session) {
     
     log_out = reactive(logout_init())
   )
+ 
+  
+  # Guardar nuevo usuario 
+  save_new_user <- function(user, password, name, email) {
+    new_user <- data.frame(
+      user = user,
+      password = sodium::password_store(password), 
+      name = name,
+      email = email,
+      sessionid = NA, 
+      stringsAsFactors = FALSE
+    )
+    sheet_append(sheet_id, new_user)
+    
+    }
   
     
   validate_password <- function(password) {
