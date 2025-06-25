@@ -32,9 +32,9 @@ library(purrr)
 library(glue)
 library(googlesheets4)
 library(gargle)
-library(gmailr)
-library(blastula)
-library(stringi)
+# library(gmailr)
+# library(blastula)
+# library(stringi)
 
 
 # gm_auth_configure(path = "client_secret_553119922184-3741qfnujvvmphnk6bp9jm8q3t61tri8.apps.googleusercontent.com.json")
@@ -1095,7 +1095,7 @@ server <- function(input, output, session) {
 
   
   # Google Sheets
-  gs4_auth(path = "nutrientes-463413-a5b1e705018f.json") # correo autorizado
+  gs4_auth(path = "nutrientes-463413-b9f6833c2f74.json") # correo autorizado
   sheet_id <- "1JFsJnHnUkRmSfOP2kcfcNa-XQBXhkvmfifj3zNnfbIU" # ID de la hoja de Google
   
   # Obtener la base de datos de usuarios 
@@ -1291,7 +1291,8 @@ server <- function(input, output, session) {
     
     
     showNotification("Usuario registrado con éxito. Inicie sesión para continuar.", type = "message")
-    removeModal()
+    removeModal
+    session$reload()
   })
   
   user_session <- reactiveValues(authenticated = FALSE, user = NULL)
