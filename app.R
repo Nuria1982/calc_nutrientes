@@ -464,7 +464,30 @@ ui <- fluidPage(
                                      )
                                  )
                           )
-                        )
+                        ),
+                        br(),
+                        
+                          uiOutput("titulo_dosis_optima"),
+                          br(),
+                          fluidRow(
+                            column(6,
+                                   uiOutput("ambiente"),
+                                   numericInput("precio_g",  
+                                                label = strong(HTML("Precio de grano (US$/kg grano)")),
+                                                value = 0,
+                                                min = 0),
+                                   numericInput("costo_N",  
+                                                label = strong(HTML("Costo N (US$/kg N)")),
+                                                value = 0,
+                                                min = 0)
+                          ),
+                          column(6,
+                                 div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;",
+                                     uiOutput("DOE"))
+                            
+                          )
+                          )
+                        
                ),
                
                tabPanel("Múltiples lotes", 
@@ -1042,6 +1065,7 @@ ui <- fluidPage(
              # )
     ),
     tabPanel("Monitoreo",
+             br(),
              
              h4(HTML("Monitoreo de nitrógeno")),
              
@@ -1115,14 +1139,16 @@ ui <- fluidPage(
              )
     ),
     tabPanel("Equivalencias",
+             br(),
+             h5("Por favor descargue la tabla y complete con los datos solicitados"),
              
              fluidRow(
                column(5, offset = 2,
-                      h4("A - Conversión directa (ej. N → NO₃)"),
+                      h4("Conversión directa (ej. N → NO₃)"),
                       rHandsontableOutput("tabla_directa")
                ),
                column(5,
-                      h4("B - Conversión inversa (ej. NO₃ → N)"),
+                      h4("Conversión inversa (ej. NO₃ → N)"),
                       rHandsontableOutput("tabla_inversa")
                )
              ),
@@ -1131,11 +1157,11 @@ ui <- fluidPage(
              
              fluidRow(
                column(5, offset = 2,
-                      h4("C1 - meq/100g a ppm"),
+                      h4("Conversión meq/100g a ppm"),
                       rHandsontableOutput("tabla_meq_to_ppm")
                ),
                column(5,
-                      h4("C2 - ppm a meq/100g"),
+                      h4("Conversión ppm a meq/100g"),
                       rHandsontableOutput("tabla_ppm_to_meq")
                )
              )
@@ -1945,6 +1971,125 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  ############ Dosis óptima económica ###########
+  
+  output$titulo_dosis_optima <- renderUI({
+    req(input$cultivo)
+    
+    nombre_cultivo <- switch(input$cultivo,
+                             "Maiz" = "maíz",
+                             "Trigo" = "trigo o cebada",
+                             "Papa" = "papa",
+                             "Girasol" = "girasol")
+    
+    h4(strong(paste0("Cálculo de la dosis óptima económica de ", nombre_cultivo)))
+  })
+  
+  output$ambiente <- renderUI({
+    req(input$cultivo)
+    
+    opciones <- switch(input$cultivo,
+                       "Trigo" = list(
+                         "Bajo (< 4 t/ha)" = "bajo_t",
+                         "Medio (4-6 t/ha)" = "medio_t",
+                         "Alto (> 6 t/ha)" = "alto_t"
+                       ),
+                       "Maiz" = list(
+                         "Muy bajo (< 8.5 t/ha)" = "muy_bajo_m",
+                         "Bajo (8.5-10 t/ha)" = "bajo_m",
+                         "Medio (10.1-11.5 t/ha)" = "medio_m",
+                         "Alto (11.6-13 t/ha)" = "alto_m",
+                         "Muy alto (> 13 t/ha)" = "muy_alto_m"
+                       ),
+                       "Papa" = list(
+                         "Bajo (< 50 t/ha)" = "bajo_p",
+                         "Medio (50-65 t/ha)" = "medio_p",
+                         "Alto (> 65 t/ha)" = "alto_p"
+                       ),
+                       "Girasol" = list(
+                         "Bajo (< 2.5 t/ha)" = "bajo_g",
+                         "Medio (2.5-3.5 t/ha)" = "medio_g",
+                         "Alto (> 3.5 t/ha)" = "alto_g"
+                       )
+    )
+    
+    selectInput("ambiente",
+                label = strong("Ambiente de rendimiento:"),
+                choices = opciones,
+                selected = names(opciones)[1])
+  })
+  
+  
+  DOE <- reactive({
+    req(input$cultivo, input$precio_g, input$costo_N, input$ambiente)
+    
+    if (is.null(input$precio_g) || is.null(input$costo_N) ||
+        is.na(input$precio_g) || is.na(input$costo_N) ||
+        input$precio_g <= 0 || input$costo_N <= 0) {
+      return(0)  # o return(NULL) si preferís que no se muestre nada
+    }
+    
+    relacion <- input$costo_N / input$precio_g
+    
+    N_opt <- switch(input$cultivo,
+                    "Trigo" = switch(input$ambiente,
+                                     "bajo_t"  = (relacion - 34) / -0.25,
+                                     "medio_t" = (relacion - 36) / -0.215,
+                                     "alto_t"  = (relacion - 38) / -0.182,
+                                     0),
+                    
+                    "Maiz" = switch(input$ambiente,
+                                    "muy_bajo_m" = (relacion - 27) / -0.15,
+                                    "bajo_m"     = (relacion - 46) / -0.25,
+                                    "medio_m"    = (relacion - 47) / -0.22,
+                                    "alto_m"     = (relacion - 47) / -0.18,
+                                    "muy_alto_m" = (relacion - 48) / -0.16,
+                                    0),
+                    
+                    "Papa" = switch(input$ambiente,
+                                    "bajo_p"  = (relacion - 190.58) / -1.026,
+                                    "medio_p" = (relacion - 190) / -0.77,
+                                    "alto_p"  = (relacion - 190) / -0.59,
+                                    0),
+                    
+                    "Girasol" = switch(input$ambiente,
+                                       "bajo_g"  = (relacion - 13) / -0.085,
+                                       "medio_g" = (relacion - 13) / -0.068,
+                                       "alto_g"  = (relacion - 13) / -0.056,
+                                       0),
+                    
+                    0  # Valor por defecto si no se selecciona nada
+    )
+    
+    N_disp <- ofertaN()
+    
+    DOE_valor <- N_opt - N_disp
+    DOE_valor <- ifelse(DOE_valor < 0, 0, DOE_valor) # Si es negativo, lo fijamos en 0
+    
+    round(DOE_valor, 0)
+  })
+  
+  
+  output$DOE <- renderUI({
+    div(
+      class = "value-box",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      background-color: #DE9E36; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+      div(
+        style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+        HTML("<strong>Dosis óptima económica<br>(kg N / ha):</strong>")
+      ),
+      div(
+        style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+        div(style = "font-size: 30px; font-weight: bold;", round(DOE(), 0)),
+        div(class = "icon-container", style = "font-size: 40px;", icon("droplet"))
+      )
+    )
+  })
+  
+    
+    
   
   #Múltiples lotes
   
@@ -3838,7 +3983,12 @@ server <- function(input, output, session) {
                   rowHeaders = NULL) %>%
       hot_col("Origen", readOnly = TRUE) %>%
       hot_col("Destino", readOnly = TRUE) %>%
-      hot_col("Resultado", readOnly = TRUE)
+      hot_col("Resultado", readOnly = TRUE,
+              renderer = "function(instance, td, row, col, prop, value, cellProperties) {
+                          Handsontable.renderers.TextRenderer.apply(this, arguments);
+                          td.style.fontWeight = 'bold';
+                          return td;
+                        }")
   })
   
   output$tabla_inversa <- renderRHandsontable({
@@ -3847,7 +3997,12 @@ server <- function(input, output, session) {
                   rowHeaders = NULL) %>%
       hot_col("Origen", readOnly = TRUE) %>%
       hot_col("Destino", readOnly = TRUE) %>%
-      hot_col("Resultado", readOnly = TRUE)
+      hot_col("Resultado", readOnly = TRUE,
+              renderer = "function(instance, td, row, col, prop, value, cellProperties) {
+                          Handsontable.renderers.TextRenderer.apply(this, arguments);
+                          td.style.fontWeight = 'bold';
+                          return td;
+                        }")
   })
   
   output$tabla_meq_to_ppm <- renderRHandsontable({
@@ -3855,7 +4010,12 @@ server <- function(input, output, session) {
                                 "Resultado")], 
                   rowHeaders = NULL) %>%
       hot_col("Nutriente", readOnly = TRUE) %>%
-      hot_col("Resultado", readOnly = TRUE)
+      hot_col("Resultado", readOnly = TRUE,
+              renderer = "function(instance, td, row, col, prop, value, cellProperties) {
+                          Handsontable.renderers.TextRenderer.apply(this, arguments);
+                          td.style.fontWeight = 'bold';
+                          return td;
+                        }")
   })
   
   output$tabla_ppm_to_meq <- renderRHandsontable({
@@ -3863,7 +4023,12 @@ server <- function(input, output, session) {
                                 "Resultado")], 
                   rowHeaders = NULL) %>%
       hot_col("Nutriente", readOnly = TRUE) %>%
-      hot_col("Resultado", readOnly = TRUE)
+      hot_col("Resultado", readOnly = TRUE,
+              renderer = "function(instance, td, row, col, prop, value, cellProperties) {
+                          Handsontable.renderers.TextRenderer.apply(this, arguments);
+                          td.style.fontWeight = 'bold';
+                          return td;
+                        }")
   })
   
   observeEvent(input$tabla_directa, {
