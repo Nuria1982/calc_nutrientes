@@ -466,29 +466,38 @@ ui <- fluidPage(
                           )
                         ),
                         br(),
-                        
-                          uiOutput("titulo_dosis_optima"),
-                          br(),
-                          fluidRow(
-                            column(6,
-                                   uiOutput("ambiente"),
-                                   numericInput("precio_g",  
-                                                label = strong(HTML("Precio de grano (US$/kg grano)")),
-                                                value = 0,
-                                                min = 0),
-                                   numericInput("costo_N",  
-                                                label = strong(HTML("Costo N (US$/kg N)")),
-                                                value = 0,
-                                                min = 0)
-                          ),
-                          column(6,
-                                 div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;",
-                                     uiOutput("DOE"))
-                            
+                        fluidRow(
+                          column(12, 
+                                 div(style = "background-color: #DEDBD280; padding: 15px; border-radius: 10px;",
+                                     uiOutput("titulo_dosis_optima"),
+                                     br(),
+                                     fluidRow(
+                                       column(6,
+                                              fluidRow(
+                                                column(6,
+                                                       uiOutput("ambiente"),
+                                                       numericInput("precio_g",  
+                                                                    label = strong(HTML("Precio de grano (US$/kg grano)")),
+                                                                    value = 0,
+                                                                    min = 0),
+                                                       numericInput("costo_N",  
+                                                                    label = strong(HTML("Costo N (US$/kg N)")),
+                                                                    value = 0,
+                                                                    min = 0)
+                                                ),
+                                               
+                                                column(6,
+                                                       br(),
+                                                       br(),
+                                                       uiOutput("DOE")  # ahora está justo al lado
+                                                )
+                                              )
+                                       )
+                                     )
+                                 )
                           )
-                          )
-                        
-               ),
+                        )
+                        ),
                
                tabPanel("Múltiples lotes", 
                         value = "seccion_nitrogeno",
@@ -1983,7 +1992,7 @@ server <- function(input, output, session) {
                              "Papa" = "papa",
                              "Girasol" = "girasol")
     
-    h4(strong(paste0("Cálculo de la dosis óptima económica de ", nombre_cultivo)))
+    h4(strong(paste0("Cálculo de la dosis óptima económica (DOE) de ", nombre_cultivo)))
   })
   
   output$ambiente <- renderUI({
@@ -2075,15 +2084,15 @@ server <- function(input, output, session) {
     div(
       class = "value-box",
       style = "display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      background-color: #DE9E36; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+      background-color: #588157; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
       div(
         style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
         HTML("<strong>Dosis óptima económica<br>(kg N / ha):</strong>")
       ),
       div(
         style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
-        div(style = "font-size: 30px; font-weight: bold;", round(DOE(), 0)),
-        div(class = "icon-container", style = "font-size: 40px;", icon("droplet"))
+        div(style = "font-size: 50px; font-weight: bold;", round(DOE(), 0)),
+        div(class = "icon-container", style = "font-size: 40px;", icon("dollar-sign"))
       )
     )
   })
