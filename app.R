@@ -32,10 +32,7 @@ library(purrr)
 library(glue)
 library(googlesheets4)
 library(gargle)
-# library(gmailr)
-# library(blastula)
-# library(stringi)
-
+library(rhandsontable)
 
 # gm_auth_configure(path = "client_secret_553119922184-3741qfnujvvmphnk6bp9jm8q3t61tri8.apps.googleusercontent.com.json")
 # gm_auth()
@@ -114,6 +111,42 @@ dosis_data <- dosis_data %>%
       grepl("kg/ha", dosis) ~ as.numeric(gsub(" kg/ha", "", sapply(strsplit(dosis, "-"), "[", 2))),  
       TRUE ~ NA_real_  
     )
+  )
+
+######## EQUIVALENCIAS ###########
+tabla_a <- data.frame(
+  Valor = rep(1, 16),
+  Origen = c("N", "N", "N", "N", "K", "KCl", "CaO", "CaCO3", "MgO", "MgO", "MgO", "P", "S", "S", "S", "%"),
+  Destino = c("NO3", "NH3", "(NH4)SO4", "(NH4)NO3", "K2O", "K2O", "Ca", "CaO", "Mg", "MgSO4", "MgCO3", "P2O5", "SO2", "SO3", "SO4", "ppm"),
+  Factor = c(4.43, 1.22, 4.72, 2.86, 1.2, 0.63, 0.71, 0.56, 0.6, 2.99, 2.09, 2.29, 2, 0.4, 3, 10000),
+  Resultado = rep(NA, 16)
+)
+tabla_b <- tabla_a %>%
+  filter(Origen != Destino) %>%
+  mutate(
+    origen_original = Origen,
+    destino_original = Destino,
+    Origen = destino_original,
+    Destino = origen_original,
+    Factor = round(1 / Factor, 6)
+  ) %>%
+  select(Valor, Origen, Destino, Factor, Resultado)
+
+# Tabla C1: meq/100g a ppm
+tabla_c1 <- data.frame(
+  Valor = rep(1, 5),
+  Nutriente = c("Ca", "Mg", "Na", "K", "H"),
+  Factor = c(200.4, 121.6, 230, 391, 10),
+  Resultado = rep(NA, 5)
+)
+
+# Tabla C2: ppm a meq/100g
+tabla_c2 <- tabla_c1 %>%
+  transmute(
+    Valor = rep(1, 5),
+    Nutriente = Nutriente,
+    Factor = round(1 / Factor, 8),
+    Resultado = rep(NA, 5)
   )
 
 
@@ -1080,9 +1113,34 @@ ui <- fluidPage(
                         )
                )
              )
+    ),
+    tabPanel("Equivalencias",
+             
+             fluidRow(
+               column(5, offset = 2,
+                      h4("A - Conversión directa (ej. N → NO₃)"),
+                      rHandsontableOutput("tabla_directa")
+               ),
+               column(5,
+                      h4("B - Conversión inversa (ej. NO₃ → N)"),
+                      rHandsontableOutput("tabla_inversa")
+               )
+             ),
+             
+             tags$hr(),
+             
+             fluidRow(
+               column(5, offset = 2,
+                      h4("C1 - meq/100g a ppm"),
+                      rHandsontableOutput("tabla_meq_to_ppm")
+               ),
+               column(5,
+                      h4("C2 - ppm a meq/100g"),
+                      rHandsontableOutput("tabla_ppm_to_meq")
+               )
+             )
+             )
     )
-    
-  )
   
 )
 
@@ -1126,15 +1184,15 @@ server <- function(input, output, session) {
   )
  
   validate_password <- function(password) {
-    if (nchar(password) < 8) {
-      return("Debe tener al menos 8 caracteres.")
+    if (nchar(password) < 6) {
+      return("Debe tener al menos 6 caracteres.")
     }
     if (!grepl("[A-Z]", password)) {
       return("Debe incluir al menos una letra mayúscula.")
     }
-    if (!grepl("[!@#$%^&*(),.?\":{}|<>]", password)) {
-      return("Debe incluir al menos un símbolo (e.g., !, @, #, etc.).")
-    }
+    # if (!grepl("[!@#$%^&*(),.?\":{}|<>]", password)) {
+    #   return("Debe incluir al menos un símbolo (e.g., !, @, #, etc.).")
+    # }
     if (!grepl("[0-9]", password)) {
       return("Debe incluir al menos un número.")
     }
@@ -1221,7 +1279,7 @@ server <- function(input, output, session) {
         passwordInput("password", "Contraseña"),
         div(
           style = "font-size: 12px; color: gray; margin-top: -10px; margin-bottom: 15px;",
-          "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, un número, y un símbolo (e.g., !, @, #, etc.)."
+          "La contraseña debe tener al menos 6 caracteres, incluir una letra mayúscula y un número."
         ),
         htmlOutput("password_message"), 
         passwordInput("confirmar_password", "Confirmar Contraseña"),
@@ -3764,6 +3822,82 @@ server <- function(input, output, session) {
       write_xlsx(resultados_monitoreo(), file)  
     }
   )
+  
+  ############## EQUIVALENCIAS ###########
+  
+  values <- reactiveValues(
+    a = tabla_a,
+    b = tabla_b,
+    c1 = tabla_c1,
+    c2 = tabla_c2
+  )
+  
+  output$tabla_directa <- renderRHandsontable({
+    rhandsontable(values$a[, c("Valor", "Origen", 
+                               "Destino", "Resultado")], 
+                  rowHeaders = NULL) %>%
+      hot_col("Origen", readOnly = TRUE) %>%
+      hot_col("Destino", readOnly = TRUE) %>%
+      hot_col("Resultado", readOnly = TRUE)
+  })
+  
+  output$tabla_inversa <- renderRHandsontable({
+    rhandsontable(values$b[, c("Valor", "Origen", 
+                               "Destino", "Resultado")], 
+                  rowHeaders = NULL) %>%
+      hot_col("Origen", readOnly = TRUE) %>%
+      hot_col("Destino", readOnly = TRUE) %>%
+      hot_col("Resultado", readOnly = TRUE)
+  })
+  
+  output$tabla_meq_to_ppm <- renderRHandsontable({
+    rhandsontable(values$c1[, c("Valor", "Nutriente", 
+                                "Resultado")], 
+                  rowHeaders = NULL) %>%
+      hot_col("Nutriente", readOnly = TRUE) %>%
+      hot_col("Resultado", readOnly = TRUE)
+  })
+  
+  output$tabla_ppm_to_meq <- renderRHandsontable({
+    rhandsontable(values$c2[, c("Valor", "Nutriente", 
+                                "Resultado")], 
+                  rowHeaders = NULL) %>%
+      hot_col("Nutriente", readOnly = TRUE) %>%
+      hot_col("Resultado", readOnly = TRUE)
+  })
+  
+  observeEvent(input$tabla_directa, {
+    df <- hot_to_r(input$tabla_directa)
+    if (!is.null(df) && nrow(df) > 0) {
+      df$Resultado <- round(df$Valor * values$a$Factor, 4)
+      values$a[, c("Valor", "Resultado")] <- df[, c("Valor", "Resultado")]
+    }
+  })
+  
+  observeEvent(input$tabla_inversa, {
+    df <- hot_to_r(input$tabla_inversa)
+    if (!is.null(df) && nrow(df) > 0) {
+      df$Resultado <- round(df$Valor * values$b$Factor, 4)
+      values$b[, c("Valor", "Resultado")] <- df[, c("Valor", "Resultado")]
+    }
+  })
+  
+  observeEvent(input$tabla_meq_to_ppm, {
+    df <- hot_to_r(input$tabla_meq_to_ppm)
+    if (!is.null(df) && nrow(df) > 0) {
+      df$Resultado <- round(df$Valor * values$c1$Factor, 6)
+      values$c1[, c("Valor", "Resultado")] <- df[, c("Valor", "Resultado")]
+    }
+  })
+  
+  observeEvent(input$tabla_ppm_to_meq, {
+    df <- hot_to_r(input$tabla_ppm_to_meq)
+    if (!is.null(df) && nrow(df) > 0) {
+      df$Resultado <- round(df$Valor * values$c2$Factor, 8)
+      values$c2[, c("Valor", "Resultado")] <- df[, c("Valor", "Resultado")]
+    }
+  })
+  
   
   
   
