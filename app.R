@@ -459,13 +459,15 @@ ui <- fluidPage(
                                      ),
                                      div(style = "flex: 1; padding-bottom: 10px;", 
                                          class = "gauge-title", 
-                                         "Dosis de N (kg N / ha)",
+                                         "Dosis óptima agronómica (kg N / ha)",
                                          flexdashboard::gaugeOutput("dosis_nitrogeno", width = "100%", height = "100px")
                                      )
                                  )
                           )
                         ),
                         br(),
+                        conditionalPanel(
+                          condition = "input.nan == 0",
                         fluidRow(
                           column(12, 
                                  div(style = "background-color: #DEDBD280; padding: 15px; border-radius: 10px;",
@@ -489,13 +491,14 @@ ui <- fluidPage(
                                                 column(6,
                                                        br(),
                                                        br(),
-                                                       uiOutput("DOE")  # ahora está justo al lado
+                                                       uiOutput("DOE")  
                                                 )
                                               )
                                        )
                                      )
                                  )
                           )
+                        )
                         )
                         ),
                
@@ -1149,7 +1152,6 @@ ui <- fluidPage(
     ),
     tabPanel("Equivalencias",
              br(),
-             h5("Por favor descargue la tabla y complete con los datos solicitados"),
              
              fluidRow(
                column(5, offset = 2,
@@ -2071,7 +2073,7 @@ server <- function(input, output, session) {
                     0  # Valor por defecto si no se selecciona nada
     )
     
-    N_disp <- ofertaN()
+    N_disp <- nitrogeno_disp()
     
     DOE_valor <- N_opt - N_disp
     DOE_valor <- ifelse(DOE_valor < 0, 0, DOE_valor) # Si es negativo, lo fijamos en 0
@@ -3987,9 +3989,10 @@ server <- function(input, output, session) {
   )
   
   output$tabla_directa <- renderRHandsontable({
-    rhandsontable(values$a[, c("Valor", "Origen", 
-                               "Destino", "Resultado")], 
-                  rowHeaders = NULL) %>%
+    tabla <- values$a[, c("Valor", "Origen", "Destino", "Resultado")]
+    tabla$Resultado <- round(tabla$Resultado, 2)
+    
+    rhandsontable(tabla, rowHeaders = NULL) %>%
       hot_col("Origen", readOnly = TRUE) %>%
       hot_col("Destino", readOnly = TRUE) %>%
       hot_col("Resultado", readOnly = TRUE,
@@ -4001,9 +4004,10 @@ server <- function(input, output, session) {
   })
   
   output$tabla_inversa <- renderRHandsontable({
-    rhandsontable(values$b[, c("Valor", "Origen", 
-                               "Destino", "Resultado")], 
-                  rowHeaders = NULL) %>%
+    tabla <- values$b[, c("Valor", "Origen", "Destino", "Resultado")]
+    tabla$Resultado <- round(tabla$Resultado, 2)
+    
+    rhandsontable(tabla, rowHeaders = NULL) %>%
       hot_col("Origen", readOnly = TRUE) %>%
       hot_col("Destino", readOnly = TRUE) %>%
       hot_col("Resultado", readOnly = TRUE,
@@ -4015,9 +4019,10 @@ server <- function(input, output, session) {
   })
   
   output$tabla_meq_to_ppm <- renderRHandsontable({
-    rhandsontable(values$c1[, c("Valor", "Nutriente", 
-                                "Resultado")], 
-                  rowHeaders = NULL) %>%
+    tabla <- values$c1[, c("Valor", "Nutriente", "Resultado")]
+    tabla$Resultado <- round(tabla$Resultado, 2)
+    
+    rhandsontable(tabla, rowHeaders = NULL) %>%
       hot_col("Nutriente", readOnly = TRUE) %>%
       hot_col("Resultado", readOnly = TRUE,
               renderer = "function(instance, td, row, col, prop, value, cellProperties) {
@@ -4028,9 +4033,10 @@ server <- function(input, output, session) {
   })
   
   output$tabla_ppm_to_meq <- renderRHandsontable({
-    rhandsontable(values$c2[, c("Valor", "Nutriente", 
-                                "Resultado")], 
-                  rowHeaders = NULL) %>%
+    tabla <- values$c2[, c("Valor", "Nutriente", "Resultado")]
+    tabla$Resultado <- round(tabla$Resultado, 2)
+    
+    rhandsontable(tabla, rowHeaders = NULL) %>%
       hot_col("Nutriente", readOnly = TRUE) %>%
       hot_col("Resultado", readOnly = TRUE,
               renderer = "function(instance, td, row, col, prop, value, cellProperties) {
