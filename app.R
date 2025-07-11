@@ -1644,9 +1644,9 @@ server <- function(input, output, session) {
         proteina_objetivo = first(proteina_objetivo),
         nan = first(nan),
         densidad_aparente = first(densidad_aparente),
-        n_nitrato_20 = max(n_nitrato_20),
-        n_nitrato_40 = max(n_nitrato_40),
-        n_nitrato_60 = max(n_nitrato_60),
+        n_nitrato_20 = max(n_nitrato_20, na.rm = TRUE),
+        n_nitrato_40 = max(n_nitrato_40, na.rm = TRUE),
+        n_nitrato_60 = max(n_nitrato_60, na.rm = TRUE),
         s_sulfato_20 = max(s_sulfato_20),
         s_sulfato_40 = max(s_sulfato_40),
         s_sulfato_60 = max(s_sulfato_60),
@@ -1677,7 +1677,7 @@ server <- function(input, output, session) {
     data <- data %>%
       mutate(across(where(is.character), ~ ifelse(is.na(.), "", .)))
     
-    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa", "p_bray_actual", "s_sulfato_20", "s_sulfato_40", "s_sulfato_60")
+    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa", "p_bray_actual", "s_sulfato_20", "boro")
     # Reemplazar valores vacíos (NA) con 0 en todas las columnas
     data <- data %>%
       mutate(across(
@@ -2120,16 +2120,16 @@ server <- function(input, output, session) {
   })
   
   
-  ajustar_requerimiento <- function(req_sistema, req_planta, proteina = NULL) {
-    if (!is.null(proteina)) {
-      req_N_planta <- req_planta + (req_planta * (proteina - 10) / 10)
-      req_N_sistema <- req_sistema + (req_sistema * (proteina - 10) / 10)
-    } else {
-      req_N_planta <- req_planta
-      req_N_sistema <- req_sistema
-    }
-    return(list(req_N_sistema = req_N_sistema, req_N_planta = req_N_planta))
-  }
+  # ajustar_requerimiento <- function(req_sistema, req_planta, proteina = NULL) {
+  #   if (!is.null(proteina)) {
+  #     req_N_planta <- req_planta + (req_planta * (proteina - 10) / 10)
+  #     req_N_sistema <- req_sistema + (req_sistema * (proteina - 10) / 10)
+  #   } else {
+  #     req_N_planta <- req_planta
+  #     req_N_sistema <- req_sistema
+  #   }
+  #   return(list(req_N_sistema = req_N_sistema, req_N_planta = req_N_planta))
+  # }
   
   resultados_nitrogeno <- reactive({
     req(data_usuario())
@@ -2179,7 +2179,7 @@ server <- function(input, output, session) {
       mutate(
         N_disponible = ifelse(
           !is.na(n_nitrato_20) & !is.na(n_nitrato_40) & !is.na(n_nitrato_60),
-          round(((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente),0),
+          round(((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente), 0),
           NA_real_  # Si alguno de ellos es NA, asigna NA
         )
       ) 
@@ -2194,14 +2194,14 @@ server <- function(input, output, session) {
         Requerimiento = case_when(
           nan > 0 ~ case_when(
             cultivo == "maiz" ~ req_sistema["maiz"],
-            cultivo == "trigo" ~ req_sistema["trigo"] + (req_sistema["trigo"] * (proteina_objetivo - 10) / 10),  # Ajuste para trigo cuando nan_20 > 0
+            cultivo == "trigo" ~ req_sistema["trigo"] + (req_sistema["trigo"] * (proteina_objetivo - 10) / 10),  
             cultivo == "girasol" ~ req_sistema["girasol"],
             cultivo == "papa" ~ req_sistema["papa"],
             TRUE ~ 0
           ),
           nan == 0 ~ case_when(
             cultivo == "maiz" ~ req_planta["maiz"],
-            cultivo == "trigo" ~ req_planta["trigo"] + (req_planta["trigo"] * (proteina_objetivo - 10) / 10),  # Ajuste para trigo cuando nan_20 == 0
+            cultivo == "trigo" ~ req_planta["trigo"] + (req_planta["trigo"] * (proteina_objetivo - 10) / 10),  
             cultivo == "girasol" ~ req_planta["girasol"],
             cultivo == "papa" ~ req_planta["papa"],
             TRUE ~ 0
@@ -2211,12 +2211,12 @@ server <- function(input, output, session) {
         OfertaN = ifelse(
           is.na(N_disponible),  
           NA,  
-          coalesce(efecto_antecesor, 0) + coalesce(Nan_total, 0) + N_disponible  
+          round(coalesce(efecto_antecesor, 0) + coalesce(Nan_total, 0) + N_disponible, 0)  
         ),
         DemandaN = rendimiento_objetivo * Requerimiento,
         DosisN = ifelse(
           !is.na(OfertaN),
-          DemandaN - OfertaN,
+          round(DemandaN - OfertaN, 0),
           NA_real_
         )
       )
@@ -2257,7 +2257,7 @@ server <- function(input, output, session) {
       "<thead><tr>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
-      "<th style='background-color: #06A77D60; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
       "<th style='background-color: #06A77D60; padding: 5px;'>Demanda<br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>Efecto antecesor<br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>N mineralizable<br>(kg N / ha)</th>",
@@ -2959,7 +2959,7 @@ server <- function(input, output, session) {
   
   output$zona_multi_s <- renderUI({
     req(data_usuario())
-    selectInput("zona_s", 
+    selectInput("zona_multi_s", 
                 label = strong("Seleccione la zona geográfica para calcular la dosis de S"),
                 choices = c("Sudeste de Bs.As.", 
                             "Otra"),
@@ -2998,12 +2998,12 @@ server <- function(input, output, session) {
         ),
         
         condiciones_cumplidas = case_when(
-          datos_completos & input$zona_s == "Sudeste de Bs.As." & 
+          datos_completos & input$zona_multi_s == "Sudeste de Bs.As." & 
             (s_sulfato_20 < 10) & 
             (suma_sulfato < 45) & 
             (nan < 65) ~ TRUE,
           
-          datos_completos & input$zona_s == "Otra" & 
+          datos_completos & input$zona_multi_s == "Otra" & 
             (s_sulfato_20 < 10) & 
             (suma_sulfato < 45) & 
             (nan < 40) ~ TRUE,
@@ -3246,11 +3246,7 @@ server <- function(input, output, session) {
     
     datos <- datos %>%
       mutate(
-        factor_z = ifelse(nutriente_en_grano_z == 0, factores_z[cultivo], nutriente_en_grano_z)
-      )
-    
-    datos <- datos %>%
-      mutate(
+        factor_z = ifelse(nutriente_en_grano_z == 0, factores_z[cultivo], nutriente_en_grano_z),
         dosis_z = case_when(
           cultivo == "papa" & zn_dtpa >= 0 & zn_dtpa < 0.5 ~ as.character(round(rendimiento_objetivo * factor_z * 1.3, 0)),
           cultivo == "papa" & zn_dtpa >= 0.5 & zn_dtpa < 2 ~ as.character(round(rendimiento_objetivo * factor_z, 0)),
