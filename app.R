@@ -1720,12 +1720,18 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$proteína, {
-    if (input$cultivo == "Trigo" && !is.null(input$proteína)) {
-      req_N_planta_value <- 30 + (30 * (input$proteína - 10) / 10)  
-      req_N_sistema_value <- 50 + (50 * (input$proteína - 10) / 10)  
-      
-      updateNumericInput(session, "req_N_planta", value = req_N_planta_value)
-      updateNumericInput(session, "req_N_sistema", value = req_N_sistema_value)
+    if (input$cultivo == "Trigo") {
+      # Si el valor está vacío, NULL o igual a 0, usar valores por defecto
+      if (is.null(input$proteína) || is.na(input$proteína) || input$proteína == "" || input$proteína == 0) {
+        updateNumericInput(session, "req_N_planta", value = 30)
+        updateNumericInput(session, "req_N_sistema", value = 50)
+      } else {
+        req_N_planta_value <- 30 + (30 * (input$proteína - 10) / 10)  
+        req_N_sistema_value <- 50 + (50 * (input$proteína - 10) / 10)  
+        
+        updateNumericInput(session, "req_N_planta", value = req_N_planta_value)
+        updateNumericInput(session, "req_N_sistema", value = req_N_sistema_value)
+      }
     }
   })
   
@@ -2194,6 +2200,7 @@ server <- function(input, output, session) {
         Requerimiento = case_when(
           nan > 0 ~ case_when(
             cultivo == "maiz" ~ req_sistema["maiz"],
+            cultivo == "trigo" & (is.na(proteina_objetivo) | proteina_objetivo == 0) ~ req_sistema["trigo"],
             cultivo == "trigo" ~ req_sistema["trigo"] + (req_sistema["trigo"] * (proteina_objetivo - 10) / 10),  
             cultivo == "girasol" ~ req_sistema["girasol"],
             cultivo == "papa" ~ req_sistema["papa"],
@@ -2201,6 +2208,7 @@ server <- function(input, output, session) {
           ),
           nan == 0 ~ case_when(
             cultivo == "maiz" ~ req_planta["maiz"],
+            cultivo == "trigo" & (is.na(proteina_objetivo) | proteina_objetivo == 0) ~ req_planta["trigo"],
             cultivo == "trigo" ~ req_planta["trigo"] + (req_planta["trigo"] * (proteina_objetivo - 10) / 10),  
             cultivo == "girasol" ~ req_planta["girasol"],
             cultivo == "papa" ~ req_planta["papa"],
