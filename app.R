@@ -1685,6 +1685,20 @@ server <- function(input, output, session) {
         .fns = ~ ifelse(is.na(.), 0, .)   # Reemplaza NA por 0
       ))
     
+    data <- data %>%
+      mutate(across(
+        .cols = c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60"),
+        .fns = ~ na_if(trimws(as.character(.)), "")  # convierte "" a NA
+      )) %>%
+      mutate(across(
+        .cols = c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60"),
+        .fns = ~ na_if(., "0")  # también convierte "0" a NA si lo deseás
+      )) %>%
+      mutate(across(
+        .cols = c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60"),
+        .fns = ~ suppressWarnings(as.numeric(.))  # finalmente, los convierte a numérico
+      ))
+    
     # Confirmar al usuario que el archivo se ha procesado correctamente
     showNotification("Archivo subido correctamente.", type = "message")
     
@@ -2151,11 +2165,13 @@ server <- function(input, output, session) {
     
     datos$antecesor <- trimws(datos$efecto_antecesor)
     
-    # Convertir columnas anuméricas
+    datos <- datos %>%
+      mutate(across(
+        c(n_nitrato_20, n_nitrato_40, n_nitrato_60),
+        ~ suppressWarnings(as.numeric(na_if(trimws(as.character(.)), "")))
+      ))
+    
     datos$rendimiento_objetivo <- as.numeric(datos$rendimiento_objetivo)
-    datos$n_nitrato_20 <- as.numeric(datos$n_nitrato_20)
-    datos$n_nitrato_40 <- as.numeric(datos$n_nitrato_40)
-    datos$n_nitrato_60 <- as.numeric(datos$n_nitrato_60)
     datos$nan <- as.numeric(datos$nan)
     datos$densidad_aparente <- as.numeric(datos$densidad_aparente)
     
@@ -2164,7 +2180,7 @@ server <- function(input, output, session) {
     } else {
       NA
     }
-    
+    print(datos %>% select(n_nitrato_20, n_nitrato_40, n_nitrato_60))
     datos <- datos %>%
       mutate(
         Mineralizacion = case_when(
@@ -2184,9 +2200,9 @@ server <- function(input, output, session) {
       group_by(lote) %>%
       mutate(
         N_disponible = ifelse(
-          !is.na(n_nitrato_20) & !is.na(n_nitrato_40) & !is.na(n_nitrato_60),
-          round(((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente), 0),
-          NA_real_  # Si alguno de ellos es NA, asigna NA
+          is.na(n_nitrato_20) | is.na(n_nitrato_40) | is.na(n_nitrato_60),
+          NA_real_,
+          round((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente, 0)
         )
       ) 
     
@@ -2230,11 +2246,22 @@ server <- function(input, output, session) {
       )
     
     datos <- datos %>%
+      ungroup() %>%
       mutate(
         Nan_total = ifelse(is.na(Nan_total), "**", as.character(Nan_total)),
         N_disponible = ifelse(is.na(N_disponible), "*", as.character(N_disponible)),
         OfertaN = ifelse(is.na(OfertaN), "*", as.character(OfertaN)),
-        DosisN = ifelse(is.na(DosisN), "*", as.character(DosisN))
+        DosisN = case_when(
+          is.na(DosisN) ~ "*",
+          DosisN < 0 ~ "",
+          TRUE ~ as.character(DosisN)
+        ) 
+      ) %>%
+      mutate(
+        across(
+          c(DemandaN, efecto_antecesor, Nan_total, N_disponible, OfertaN, DosisN),
+          ~ ifelse(cultivo == "soja", "", .)
+        )
       )
     
     
@@ -2271,7 +2298,7 @@ server <- function(input, output, session) {
       "<th style='background-color: #FF991460; padding: 5px;'>N mineralizable<br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>Nitrógeno disponible <br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>Oferta<br>(kg N / ha)</th>",
-      "<th style='background-color: #C5223360; padding: 5px;'>Dosis<br>(kg N / ha)</th>",
+      "<th style='background-color: #C5223360; padding: 5px;'>Dosis Óptima Agronómica<br>(kg N / ha)</th>",
       "</tr></thead>",
       "<tbody>",
       
@@ -3255,37 +3282,55 @@ server <- function(input, output, session) {
     datos <- datos %>%
       mutate(
         factor_z = ifelse(nutriente_en_grano_z == 0, factores_z[cultivo], nutriente_en_grano_z),
-        dosis_z = case_when(
-          cultivo == "papa" & zn_dtpa >= 0 & zn_dtpa < 0.5 ~ as.character(round(rendimiento_objetivo * factor_z * 1.3, 0)),
-          cultivo == "papa" & zn_dtpa >= 0.5 & zn_dtpa < 2 ~ as.character(round(rendimiento_objetivo * factor_z, 0)),
-          cultivo == "papa" & zn_dtpa >= 2 ~ "No se recomienda fertilizar con zinc",
-          zn_dtpa >= 0 & zn_dtpa < 0.5 ~ as.character(round(rendimiento_objetivo * factor_z * 1.3, 0)),
-          zn_dtpa >= 0.5 & zn_dtpa < 1.2 ~ as.character(round(rendimiento_objetivo * factor_z, 0)),
-          zn_dtpa >= 1.2 ~ "No se recomienda fertilizar con zinc"
+        
+        # Clasificamos en tres grupos con una nueva columna
+        estado = case_when(
+          is.na(zn_dtpa) | zn_dtpa == 0 ~ "sin_dato",
+          cultivo == "papa" & zn_dtpa >= 2 ~ "no_recomienda",
+          cultivo != "papa" & zn_dtpa >= 1.2 ~ "no_recomienda",
+          TRUE ~ "recomienda"
+        ),
+        
+        `Dosis a la semilla` = case_when(
+          estado == "recomienda" ~ "100-200",
+          estado == "no_recomienda" ~ "No se recomienda fertilizar",
+          estado == "sin_dato" ~ "**"
+        ),
+        
+        `Dosis foliar` = case_when(
+          estado == "recomienda" ~ "400-600",
+          estado == "no_recomienda" ~ "No se recomienda fertilizar",
+          estado == "sin_dato" ~ "**"
+        ),
+        
+        `Dosis al suelo` = case_when(
+          estado == "recomienda" ~ "1-1.5",
+          estado == "no_recomienda" ~ "No se recomienda fertilizar",
+          estado == "sin_dato" ~ "**"
         )
-      ) %>%
-      ungroup()
-    
-    datos <- datos %>%
-      mutate(
-        dosis_z = ifelse(is.na(dosis_z), "-", as.character(dosis_z))
       )
     
     datos_resultado <- datos %>%
       select(
-        lote, cultivo, rendimiento_objetivo, dosis_z
+        lote, cultivo, rendimiento_objetivo,
+        `Dosis a la semilla`, `Dosis foliar`, `Dosis al suelo`, estado
       ) %>%
-      rename(`Lote` = lote,
-             `Cultivo` = cultivo,
-             `Rendimiento (tn/ha)` = rendimiento_objetivo,
-             `Extracción de Zn (g Zn / ha)` = dosis_z
+      rename(
+        `Lote` = lote,
+        `Cultivo` = cultivo,
+        `Rendimiento (tn/ha)` = rendimiento_objetivo
       )
-    return(datos_resultado)
     
+    return(datos_resultado)
   })
   
   output$tabla_zinc <- renderUI({
     data <- resultados_zinc()
+    
+    contiene_sin_dato <- any(data$estado == "sin_dato")
+    contiene_no_recomienda <- any(data$estado == "no_recomienda")
+    
+    data <- data[, !names(data) %in% "estado"]
     
     tabla_html <- paste0(
       "<table style='width: 100%; border-collapse: collapse;'>",
@@ -3293,7 +3338,9 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Extracción de Zn <br>(g Zn / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -3302,13 +3349,26 @@ server <- function(input, output, session) {
         apply(data, 1, function(row) {
           paste0(
             "<tr>",
-            paste0("<td style='padding: 10px;'>", row, "</td>", collapse = ""),
+            paste0(
+              lapply(row, function(cell) {
+                if (cell == "No se recomienda fertilizar") {
+                  paste0("<td style='padding: 10px; font-size: 12px; color: #333;'>", cell, "</td>")
+                } else {
+                  paste0("<td style='padding: 10px;'>", cell, "</td>")
+                }
+              }),
+              collapse = ""
+            ),
             "</tr>"
           )
         }),
         collapse = ""
       ),
-      "</tbody></table>"
+      
+      "</tbody></table>",
+      if (contiene_sin_dato) {
+        "<p style='margin-top: 5px; font-style: italic;'>** No se puede calcular la dosis por falta de datos de Zn-DTPA</p>"
+      } else { "" }
     )
     
     HTML(tabla_html)
@@ -3319,7 +3379,31 @@ server <- function(input, output, session) {
       paste("resultados_Zn_", Sys.Date(), ".xlsx", sep = "")  
     },
     content = function(file) {
-      write_xlsx(resultados_zinc(), file)  
+      library(openxlsx)
+      
+      datos <- resultados_zinc()
+      
+      # Eliminar la columna 'estado'
+      datos_export <- datos[, !names(datos) %in% "estado"]
+      
+      # Crear el workbook
+      wb <- createWorkbook()
+      addWorksheet(wb, "Zinc")
+      
+      # Escribir los datos sin la columna 'estado'
+      writeData(wb, "Zinc", datos_export, startRow = 1, startCol = 1)
+      
+      # Ver si hay filas con "**" para agregar aclaración
+      necesita_aclaracion <- any(datos$estado == "sin_dato")
+      
+      if (necesita_aclaracion) {
+        start_row <- nrow(datos_export) + 2
+        aclaracion <- "** No se puede calcular la dosis por falta de datos de Zn - DTPA"
+        writeData(wb, "Zinc", aclaracion, startRow = start_row, startCol = 1)
+      }
+      
+      # Guardar el archivo
+      saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
   
@@ -3473,35 +3557,37 @@ server <- function(input, output, session) {
     
     datos <- datos %>%
       mutate(
-        factor_B = ifelse(nutriente_en_grano_b == 0, factores_B[cultivo], nutriente_en_grano_b)
-      )
+        factor_B = ifelse(nutriente_en_grano_b == 0, factores_B[cultivo], nutriente_en_grano_b),
     
-    datos <- datos %>%
-      mutate(
-        dosis_B = case_when(
-          cultivo == "soja" & boro >= 0 & boro < 0.5 ~ as.character(round(rendimiento_objetivo * factor_B * 1.3, 0)),
-          cultivo == "soja" & boro >= 0.5 & boro < 0.61 ~ as.character(round(rendimiento_objetivo * factor_B, 0)),
-          cultivo == "soja" & boro >= 0.61 ~ "No se recomienda fertilizar con boro",
-          boro >= 0 & boro < 0.5 ~ as.character(round(rendimiento_objetivo * factor_B * 1.3, 0)),
-          boro >= 0.5 & boro < 0.66 ~ as.character(round(rendimiento_objetivo * factor_B, 0)),
-          boro >= 0.66 ~ "No se recomienda fertilizar con boro"
+        estado = case_when(
+          is.na(boro) | boro == 0 ~ "sin_dato",
+          cultivo == "soja" & boro >= 0.61 ~ "no_recomienda",
+          cultivo != "soja" & boro >= 0.66 ~ "no_recomienda",
+          TRUE ~ "recomienda"
+        ),
+        
+        `Dosis foliar` = case_when(
+          estado == "recomienda" ~ "100-200",
+          estado == "no_recomienda" ~ "No se recomienda fertilizar",
+          estado == "sin_dato" ~ "**"
+        ),
+        
+        `Dosis al suelo` = case_when(
+          estado == "recomienda" ~ "1-2",
+          estado == "no_recomienda" ~ "No se recomienda fertilizar",
+          estado == "sin_dato" ~ "**"
         )
-      ) %>%
-      ungroup()
-    
-    datos <- datos %>%
-      mutate(
-        dosis_B = ifelse(is.na(dosis_B), "-", as.character(dosis_B))
       )
+  
+    
     
     datos_resultado <- datos %>%
       select(
-        lote, cultivo, rendimiento_objetivo, dosis_B
+        lote, cultivo, rendimiento_objetivo, `Dosis foliar`, `Dosis al suelo`, estado
       ) %>%
       rename(`Lote` = lote,
              `Cultivo` = cultivo,
-             `Rendimiento (tn/ha)` = rendimiento_objetivo,
-             `Extracción de B (g B / ha)` = dosis_B
+             `Rendimiento (tn/ha)` = rendimiento_objetivo
       )
     return(datos_resultado)
     
@@ -3510,13 +3596,20 @@ server <- function(input, output, session) {
   output$tabla_boro <- renderUI({
     data <- resultados_boro()
     
+    contiene_sin_dato <- any(data$estado == "sin_dato")
+    contiene_no_recomienda <- any(data$estado == "no_recomienda")
+    
+    data <- data[, !names(data) %in% "estado"]
+    
+    
     tabla_html <- paste0(
       "<table style='width: 100%; border-collapse: collapse;'>",
       "<thead><tr>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Extracción de B <br>(g B / ha)</th>",
+      "<th style='background-color: #778DA960; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
+      "<th style='background-color: #778DA960; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -3525,13 +3618,27 @@ server <- function(input, output, session) {
         apply(data, 1, function(row) {
           paste0(
             "<tr>",
-            paste0("<td style='padding: 10px;'>", row, "</td>", collapse = ""),
+            paste0(
+              lapply(row, function(cell) {
+                if (cell == "No se recomienda fertilizar") {
+                  paste0("<td style='padding: 10px; font-size: 12px; color: #333;'>", cell, "</td>")
+                } else {
+                  paste0("<td style='padding: 10px;'>", cell, "</td>")
+                }
+              }),
+              collapse = ""
+            ),
             "</tr>"
           )
         }),
         collapse = ""
       ),
-      "</tbody></table>"
+      
+      "</tbody></table>",
+     
+      if (contiene_sin_dato) {
+        "<p style='margin-top: 5px; font-style: italic;'>** No se puede calcular la dosis por falta de datos de Boro</p>"
+      } else { "" }
     )
     
     HTML(tabla_html)
@@ -3542,7 +3649,31 @@ server <- function(input, output, session) {
       paste("resultados_B_", Sys.Date(), ".xlsx", sep = "")  
     },
     content = function(file) {
-      write_xlsx(resultados_boro(), file)  
+      library(openxlsx)
+      
+      datos <- resultados_boro()
+      
+      # Eliminar la columna 'estado'
+      datos_export <- datos[, !names(datos) %in% "estado"]
+      
+      # Crear el workbook
+      wb <- createWorkbook()
+      addWorksheet(wb, "Boro")
+      
+      # Escribir los datos sin la columna 'estado'
+      writeData(wb, "Boro", datos_export, startRow = 1, startCol = 1)
+      
+      # Ver si hay filas con "**" para agregar aclaración
+      necesita_aclaracion <- any(datos$estado == "sin_dato")
+      
+      if (necesita_aclaracion) {
+        start_row <- nrow(datos_export) + 2
+        aclaracion <- "** No se puede calcular la dosis por falta de datos de Boro"
+        writeData(wb, "Boro", aclaracion, startRow = start_row, startCol = 1)
+      }
+      
+      # Guardar el archivo
+      saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
   
@@ -3565,8 +3696,8 @@ server <- function(input, output, session) {
     nitrogeno_seleccionada <- nitrogeno[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis N (kg N / ha)")]
     fosforo_seleccionada <- fosforo[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis de suficiencia (kg P / ha)", "Dosis de construcción y mantenimiento (kg P / ha)")]
     azufre_seleccionada <- azufre[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis S (kg S / ha)")]
-    zinc_seleccionada <- zinc[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Extracción de Zn (g Zn / ha)")]
-    boro_seleccionada <- boro[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Extracción de B (g B / ha)")]
+    zinc_seleccionada <- zinc[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis a la semilla", "Dosis foliar", "Dosis al suelo")]
+    boro_seleccionada <- boro[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis foliar", "Dosis al suelo")]
     
     
     fosforo_seleccionada <- fosforo_seleccionada[, !colnames(fosforo_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
@@ -3600,12 +3731,15 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #C5223360; padding: 5px;'>Dosis de nitrogeno<br>(kg N / ha)</th>",
+      "<th style='background-color: #C5223360; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
       "<th style='background-color: #58815760; padding: 5px;'>Dosis de suficiencia<br>(kg P / ha)</th>",
       "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construccion y mantenimiento<br>(kg P / ha)</th>",
       "<th style='background-color: #DEB84160; padding: 5px;'>Dosis de azufre <br>(kg S / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Extracción de zinc <br>(g Zn / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Extracción de boro <br>(g B / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
+      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
+      "<th style='background-color: #778DA960; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
+      "<th style='background-color: #778DA960; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -3614,7 +3748,16 @@ server <- function(input, output, session) {
         apply(data, 1, function(row) {
           paste0(
             "<tr>",
-            paste0("<td style='padding: 10px;'>", row, "</td>", collapse = ""),
+            paste0(
+              sapply(row, function(cell) {
+                if (grepl("No se recomienda fertilizar", cell)) {
+                  paste0("<td style='padding: 10px; font-size: 12px;'>", cell, "</td>")
+                } else {
+                  paste0("<td style='padding: 10px;'>", cell, "</td>")
+                }
+              }),
+              collapse = ""
+            ),
             "</tr>"
           )
         }),
@@ -3623,7 +3766,14 @@ server <- function(input, output, session) {
       "</tbody></table>"
     )
     
-    HTML(tabla_html)
+    aclaraciones <- paste0(
+      "<p style='margin-top: 10px; font-style: italic;'>",
+      "* Los valores de N disponible, Oferta y Dosis no fueron calculados por falta de datos de nitratos (0-20, 20-40 o 40-60).<br>",
+      "** No se puede calcular la dosis si faltan datos de Zn-DTPA o Boro.<br>",
+      "</p>"
+    )
+    
+    HTML(tabla_html, aclaraciones)
   })
   
   output$descarga_total <- downloadHandler(
@@ -3640,13 +3790,17 @@ server <- function(input, output, session) {
       # Escribir los resultados en la hoja
       writeData(wb, "resultados_total", resultados_total(), startRow = 1, startCol = 1)
       
-      aclaracion_1 <- "*Los valores de N disponible, Oferta y Dosis no fueron calculados debido a la falta de datos de nitratos (0-20, 20-40, o 40-60)."
+      start_row <- nrow(resultados_total()) + 3
       
-      # Calcular la fila donde se escribirá el mensaje (después de los datos)
-      start_row <- nrow(resultados_total()) + 2
+      aclaraciones <- c(
+        "* Los valores de N disponible, Oferta y Dosis no fueron calculados por falta de datos de nitratos (0-20, 20-40 o 40-60).",
+        "** No se puede calcular la dosis si faltan datos de Zn-DTPA o Boro."
+      )
       
-      # Escribir las aclaraciones dejando una fila de espacio
-      writeData(wb, "resultados_total", aclaracion_1, startRow = start_row + 1, startCol = 1)
+      for (i in seq_along(aclaraciones)) {
+        writeData(wb, "resultados_total", aclaraciones[i], startRow = start_row + i - 1, startCol = 1)
+      }
+      
       
       # Guardar el archivo Excel
       saveWorkbook(wb, file, overwrite = TRUE)
