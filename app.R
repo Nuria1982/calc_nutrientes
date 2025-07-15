@@ -160,7 +160,20 @@ ui <- fluidPage(
   div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
   
   
-  titlePanel("Plataforma de Recomendación Nutricional para Cultivos Extensivos"),
+  titlePanel(
+    div(
+      style = "display: flex; align-items: center;",
+      img(src = "LOGO_SF.png", height = "100px", style = "margin-right: 15px;"),
+      h1("Nutriencia", style = "margin: 0;")
+    )
+  ),
+  # titlePanel(
+  #   div(
+  #     style = "display: flex; align-items: center; justify-content: center;",
+  #     img(src = "LOGO_SF.png", height = "100px", style = "margin-right: 15px;"),
+  #     h1("Nutriencia", style = "margin: 0;")
+  #   )
+  # ),
   
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
@@ -282,8 +295,8 @@ ui <- fluidPage(
              
              div(
                style = "display: flex; justify-content: center; align-items: center; gap: 80px;",
-               tags$img(src = "Logo_suelo_cultivo.png", width = "10%", alt = "Grupo_Suelo_Cultivo"),
-               tags$img(src = "logoFCA2.png", width = "10%", alt = "FCA"),
+               tags$img(src = "Logo_suelo_cultivo_SF.png", width = "10%", alt = "Grupo_Suelo_Cultivo"),
+               tags$img(src = "logoFCA2_SF.png", width = "10%", alt = "FCA"),
                tags$img(src = "IPADS.png", width = "10%", alt = "IPADS")
              ),
              br(),
@@ -393,7 +406,7 @@ ui <- fluidPage(
                                        column(4,
                                               numericInput("nan",  
                                                            label = strong(HTML("Nan (0-20cm, ppm)")),
-                                                           value = 0,
+                                                           value = 2.6,
                                                            min = 0),
                                               uiOutput("zonas_ui")
                                        ),
@@ -1448,12 +1461,12 @@ server <- function(input, output, session) {
         Proteina_objetivo = c(NA, NA, NA, NA, NA, NA),
         Estrato = c("0-20", "20-40", "40-60", "0-20", "20-40", "40-60"),
         Densidad_aparente = c(1.2, NA, NA, 1.2, NA, NA),
-        P_Bray_actual = c(NA, NA, NA, NA, NA, NA),
-        Zn_DTPA = c(NA, NA, NA, NA, NA, NA),
-        Boro = c(NA, NA, NA, NA, NA, NA),
         Nan = c(NA, NA, NA, NA, NA, NA),
         N_nitrato = c(NA, NA, NA, NA, NA, NA),
+        P_Bray_actual = c(NA, NA, NA, NA, NA, NA),
         S_sulfato = c(NA, NA, NA, NA, NA, NA),
+        Zn_DTPA = c(NA, NA, NA, NA, NA, NA),
+        Boro = c(NA, NA, NA, NA, NA, NA),
         nivelP_objetivo = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_P = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_S = c(NA, NA, NA, NA, NA, NA),
@@ -1470,16 +1483,16 @@ server <- function(input, output, session) {
         Rendimiento_objetivo = "Rendimiento (tn/ha)",
         Cultivo_segunda = "Cultivo segunda",
         Rendimiento_objetivo_cultivo_segunda = "Rendimiento cultivo segunda (tn/ha)",
-        Efecto_antecesor = "Efecto antecesor (kg/ha)",
-        Proteina_objetivo = "Proteína objetivo (%)",
+        Efecto_antecesor = "Efecto antecesor (kg/ha)*",
+        Proteina_objetivo = "Proteína objetivo (%)*",
         Estrato = "Estrato (cm)",
         Densidad_aparente = "Densidad aparente (g/cm³)*",
-        P_Bray_actual = "P Bray actual (ppm)",
-        Zn_DTPA = "Zn - DTPA (ppm)",
-        Boro = "Boro (ppm)",
         Nan = "Nan (mg/kg)",
         N_nitrato = "N-Nitrato (mg/kg)",
+        P_Bray_actual = "P Bray actual (ppm)",
         S_sulfato = "Sulfato (mg/kg)",
+        Zn_DTPA = "Zn - DTPA (ppm)",
+        Boro = "Boro (ppm)",
         nivelP_objetivo = "Nivel P objetivo (ppm)*",
         Nutriente_en_grano_P = "Nutriente en grano P (kg/t)*",
         Nutriente_en_grano_S = "Nutriente en grano S (kg/t)*",
@@ -1519,6 +1532,21 @@ server <- function(input, output, session) {
       estilo_general4 <- createStyle(fgFill = "gray90")
       estilo_general5 <- createStyle(border = "Bottom",
                                      fgFill = "gray90")
+      
+      estilo_general7 <- createStyle(fgFill = "gray90",
+                                     fontColour = "darkgreen",
+                                     textDecoration = "bold",
+                                     border = "Bottom",
+                                     borderColour = "black",
+                                     borderStyle = "thin",
+                                     wrapText = TRUE )
+      estilo_general8 <- createStyle(fgFill = "gray90",
+                                     fontColour = "orange",
+                                     textDecoration = "bold",
+                                     border = "Bottom",
+                                     borderColour = "black",
+                                     borderStyle = "thin",
+                                     wrapText = TRUE )
       estilo_general6 <- createStyle(fgFill = "gray90",
                                      fontColour = "red",
                                      textDecoration = "bold",
@@ -1526,22 +1554,40 @@ server <- function(input, output, session) {
                                      borderColour = "black",
                                      borderStyle = "thin",
                                      wrapText = TRUE )
-      estilo_aclaracion <- createStyle(textDecoration = c("bold", "italic"),
-                                       fontColour = "red",
+      
+      estilo_aclaracion2 <- createStyle(textDecoration = c("bold", "italic"),
+                                       fontColour = "darkgreen",
                                        fontSize = 12)
+      estilo_aclaracion3 <- createStyle(textDecoration = c("bold", "italic"),
+                                       fontColour = "orange",
+                                       fontSize = 12)
+      estilo_aclaracion1 <- createStyle(textDecoration = c("bold", "italic"),
+                                        fontColour = "red",
+                                        fontSize = 12)
       
       
       addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:20), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general2, rows = c(2, 5), cols = c(1:20), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8,14), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8,14), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:13, 15:20), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8, 11, 13), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8, 11, 13), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9, 10, 12, 14:20), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general6, rows = c(1), cols = c(9, 16:20), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general7, rows = c(1), cols = c(6), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general8, rows = c(1), cols = c(7), gridExpand = TRUE)
       
       last_row <- nrow(datos) + 3
-      aclaracion <- "* Puede ingresar valores propios o el sistema utilizará valores predeterminados (Ver instructivo para consultar valores)."
-      writeData(wb, "Datos", aclaracion, startRow = last_row, startCol = 1)
-      addStyle(wb, "Datos", style = estilo_aclaracion, rows = last_row, cols = 1, gridExpand = TRUE)
+      
+      aclaracion2 <- "* Créditos o penalidad de N (kg/ha) según antecesor."
+      writeData(wb, "Datos", aclaracion2, startRow = last_row, startCol = 1)
+      addStyle(wb, "Datos", style = estilo_aclaracion2, rows = last_row, cols = 1, gridExpand = TRUE)
+      
+      aclaracion3 <- "* Solo para trigo y cebada."
+      writeData(wb, "Datos", aclaracion3, startRow = last_row+1, startCol = 1)
+      addStyle(wb, "Datos", style = estilo_aclaracion3, rows = last_row+1, cols = 1, gridExpand = TRUE)
+      
+      aclaracion1 <- "* Puede ingresar valores propios o el sistema utilizará valores predeterminados (Ver instructivo para consultar valores)."
+      writeData(wb, "Datos", aclaracion1, startRow = last_row+2, startCol = 1)
+      addStyle(wb, "Datos", style = estilo_aclaracion1, rows = last_row+2, cols = 1, gridExpand = TRUE)
       
       saveWorkbook(wb, file, overwrite = TRUE)
       
@@ -1583,8 +1629,19 @@ server <- function(input, output, session) {
       return(NULL) 
     }
     
-    data <- data %>% 
-      filter(!grepl("^\\* Puede ingresar valores propios", .[[1]], ignore.case = TRUE))
+    data_char <- data %>%
+      mutate(across(everything(), ~ tolower(as.character(.))))
+    
+    # Elimina filas completamente vacías (solo NA o "")
+    data_char <- data_char %>%
+      filter(rowSums(is.na(.) | . == "" | . == "na") < ncol(.))
+    
+    # Elimina fila de aclaración (por ejemplo: "* puede ingresar valores propios...")
+    data_char <- data_char %>%
+      filter(!apply(., 1, function(row) any(grepl("puede ingresar valores propios", row, fixed = TRUE))))
+    
+    # Aplica filtro original a data (conservando tipos originales)
+    data <- data[as.numeric(rownames(data_char)), ]
     
     # Renombrar las columnas con las unidades correspondientes
     column_original <- c(
@@ -1660,7 +1717,7 @@ server <- function(input, output, session) {
         nutriente_en_grano_b = first(nutriente_en_grano_b)
       ) %>%
       ungroup()
-    
+
     
     # Si falta la columna `Densidad aparente`, crearla con el valor predeterminado
     if (!"densidad_aparente" %in% colnames(data)) {
@@ -1756,7 +1813,7 @@ server <- function(input, output, session) {
       
     } else if (input$cultivo == "Girasol") {
       updateNumericInput(session, "req_N_planta", value = 40)
-      updateNumericInput(session, "req_N_sistema", value = 60)
+      updateNumericInput(session, "req_N_sistema", value = 70)
       
     } else if (input$cultivo == "Papa") {
       updateNumericInput(session, "req_N_planta", value = 4)
@@ -2112,9 +2169,8 @@ server <- function(input, output, session) {
         HTML("<strong>Dosis óptima económica<br>(kg N / ha):</strong>")
       ),
       div(
-        style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
-        div(style = "font-size: 50px; font-weight: bold;", round(DOE(), 0)),
-        div(class = "icon-container", style = "font-size: 40px;", icon("dollar-sign"))
+        style = "display: flex; justify-content: space-between; width: 60%; align-items: center; justify-content: center",
+        div(style = "font-size: 50px; font-weight: bold;", round(DOE(), 0))
       )
     )
   })
@@ -2180,7 +2236,7 @@ server <- function(input, output, session) {
     } else {
       NA
     }
-    print(datos %>% select(n_nitrato_20, n_nitrato_40, n_nitrato_60))
+
     datos <- datos %>%
       mutate(
         Mineralizacion = case_when(
@@ -2206,7 +2262,7 @@ server <- function(input, output, session) {
         )
       ) 
     
-    req_sistema <- c(maiz = 30, trigo = 50, girasol = 60, papa = 6)
+    req_sistema <- c(maiz = 30, trigo = 50, girasol = 70, papa = 6)
     req_planta <- c(maiz = 20, trigo = 30, girasol = 40, papa = 4)
     
     
@@ -2298,7 +2354,7 @@ server <- function(input, output, session) {
       "<th style='background-color: #FF991460; padding: 5px;'>N mineralizable<br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>Nitrógeno disponible <br>(kg N / ha)</th>",
       "<th style='background-color: #FF991460; padding: 5px;'>Oferta<br>(kg N / ha)</th>",
-      "<th style='background-color: #C5223360; padding: 5px;'>Dosis Óptima Agronómica<br>(kg N / ha)</th>",
+      "<th style='background-color: #C5223360; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
       "</tr></thead>",
       "<tbody>",
       
@@ -2337,8 +2393,11 @@ server <- function(input, output, session) {
       wb <- createWorkbook()
       addWorksheet(wb, "Resultados_N")
       
+      datos_export <- resultados_nitrogeno() %>%
+        rename(`Dosis óptima agronómica (kg N / ha)` = `Dosis N (kg N / ha)`)
+      
       # Escribir los resultados en la hoja
-      writeData(wb, "Resultados_N", resultados_nitrogeno(), startRow = 1, startCol = 1)
+      writeData(wb, "Resultados_N", datos_export, startRow = 1, startCol = 1)
       
       aclaracion_1 <- "*Los valores de N disponible, Oferta y Dosis no fueron calculados debido a la falta de datos de nitratos (0-20, 20-40, o 40-60)."
       
@@ -3004,6 +3063,7 @@ server <- function(input, output, session) {
   resultados_azufre <- reactive({
     req(data_usuario())      
     datos <- data_usuario()    
+    
     
     datos <- datos %>%
       mutate(
@@ -3784,13 +3844,16 @@ server <- function(input, output, session) {
       
       library(openxlsx)
       
+      datos_export <- resultados_total() %>%
+        rename(`Dosis óptima agronómica (kg N / ha)` = `Dosis N (kg N / ha)`)
+      
       wb <- createWorkbook()
       addWorksheet(wb, "resultados_total")
       
       # Escribir los resultados en la hoja
-      writeData(wb, "resultados_total", resultados_total(), startRow = 1, startCol = 1)
+      writeData(wb, "resultados_total", datos_export, startRow = 1, startCol = 1)
       
-      start_row <- nrow(resultados_total()) + 3
+      start_row <- nrow(datos_export) + 3
       
       aclaraciones <- c(
         "* Los valores de N disponible, Oferta y Dosis no fueron calculados por falta de datos de nitratos (0-20, 20-40 o 40-60).",
@@ -3873,7 +3936,7 @@ server <- function(input, output, session) {
         style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
         div(
           style = "font-size: 30px; font-weight: bold;",
-          round(dosis_monitoreo(), 0)  # Llamada correcta a la función reactiva
+          round(dosis_monitoreo(), 0)  
         ),
         div(
           class = "icon-container",
