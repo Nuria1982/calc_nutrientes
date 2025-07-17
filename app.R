@@ -33,6 +33,8 @@ library(glue)
 library(googlesheets4)
 library(gargle)
 library(rhandsontable)
+library(stringi)       
+library(gmailr)
 
 # gm_auth_configure(path = "client_secret_553119922184-3741qfnujvvmphnk6bp9jm8q3t61tri8.apps.googleusercontent.com.json")
 # gm_auth()
@@ -61,8 +63,6 @@ library(rhandsontable)
 #   # Enviar email
 #   gm_send_message(email)
 # }
-
-
 
 #
 cookie_expiry <- 7
@@ -157,23 +157,19 @@ ui <- fluidPage(
   useShinyjs(),
   
   theme = bs_theme(version = 4, bootswatch = "flatly"),
+  
+  
+  
+  title = "Nutriencia",
+  
   div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
   
-  
-  titlePanel(
-    div(
-      style = "display: flex; align-items: center;",
-      img(src = "LOGO_SF.png", height = "100px", style = "margin-right: 15px;"),
-      h1("Nutriencia", style = "margin: 0;")
-    )
+  div(
+    style = "display: flex; align-items: center;",
+    img(src = "LOGO_SF.png", height = "100px", style = "margin-right: 15px;"),
+    h1("Nutriencia", style = "margin: 0;")
   ),
-  # titlePanel(
-  #   div(
-  #     style = "display: flex; align-items: center; justify-content: center;",
-  #     img(src = "LOGO_SF.png", height = "100px", style = "margin-right: 15px;"),
-  #     h1("Nutriencia", style = "margin: 0;")
-  #   )
-  # ),
+  
   
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
@@ -406,7 +402,7 @@ ui <- fluidPage(
                                        column(4,
                                               numericInput("nan",  
                                                            label = strong(HTML("Nan (0-20cm, ppm)")),
-                                                           value = 2.6,
+                                                           value = 0,
                                                            min = 0),
                                               uiOutput("zonas_ui")
                                        ),
@@ -1490,7 +1486,7 @@ server <- function(input, output, session) {
         Nan = "Nan (mg/kg)",
         N_nitrato = "N-Nitrato (mg/kg)",
         P_Bray_actual = "P Bray actual (ppm)",
-        S_sulfato = "Sulfato (mg/kg)",
+        S_sulfato = "S-Sulfato (mg/kg)",
         Zn_DTPA = "Zn - DTPA (ppm)",
         Boro = "Boro (ppm)",
         nivelP_objetivo = "Nivel P objetivo (ppm)*",
@@ -1615,8 +1611,8 @@ server <- function(input, output, session) {
     
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Cultivo segunda", "Rendimiento cultivo segunda (tn/ha)", "Efecto antecesor (kg/ha)", "Proteína objetivo (%)",
-                          "Estrato (cm)", "Densidad aparente (g/cm³)*", "P Bray actual (ppm)", "Zn - DTPA (ppm)", "Boro (ppm)", "Nan (mg/kg)", "N-Nitrato (mg/kg)", "Sulfato (mg/kg)","Nivel P objetivo (ppm)*", 
+    required_columns <- c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Cultivo segunda", "Rendimiento cultivo segunda (tn/ha)", "Efecto antecesor (kg/ha)*", "Proteína objetivo (%)*",
+                          "Estrato (cm)", "Densidad aparente (g/cm³)*", "P Bray actual (ppm)", "Zn - DTPA (ppm)", "Boro (ppm)", "Nan (mg/kg)", "N-Nitrato (mg/kg)", "S-Sulfato (mg/kg)","Nivel P objetivo (ppm)*", 
                           "Nutriente en grano P (kg/t)*", "Nutriente en grano S (kg/t)*", "Nutriente en grano Z (g/t)*", "Nutriente en grano B (g/t)*")
     missing_columns <- setdiff(required_columns, colnames(data))
     
@@ -1640,6 +1636,15 @@ server <- function(input, output, session) {
     data_char <- data_char %>%
       filter(!apply(., 1, function(row) any(grepl("puede ingresar valores propios", row, fixed = TRUE))))
     
+    data_char <- data_char %>%
+      filter(!apply(., 1, function(row) any(grepl("créditos o penalidad de N", row, fixed = TRUE))))
+    
+    data_char <- data_char %>%
+      filter(!apply(., 1, function(row) any(grepl("solo para trigo y cebada", row, fixed = TRUE))))
+    
+    data_char <- data_char %>%
+      filter(!apply(., 1, function(row) any(grepl("\\*", row))))
+    
     # Aplica filtro original a data (conservando tipos originales)
     data <- data[as.numeric(rownames(data_char)), ]
     
@@ -1650,16 +1655,16 @@ server <- function(input, output, session) {
       `Rendimiento (tn/ha)` = "Rendimiento_objetivo" ,
       `Cultivo segunda` = "Cultivo_segunda",
       `Rendimiento cultivo segunda (tn/ha)` = "Rendimiento_objetivo_cultivo_segunda",
-      `Efecto antecesor (kg/ha)` = "Efecto_antecesor",
-      `Proteína objetivo (%)` = "Proteina_objetivo",
+      `Efecto antecesor (kg/ha)*` = "Efecto_antecesor",
+      `Proteína objetivo (%)*` = "Proteina_objetivo",
       `Estrato (cm)` = "Estrato",
       `Densidad aparente (g/cm³)*` = "Densidad_aparente",
-      `P Bray actual (ppm)` = "P_Bray_actual",
-      `Zn - DTPA (ppm)` = "Zn_DTPA",
-      `Boro (ppm)` = "Boro",
       `Nan (mg/kg)` = "Nan",
       `N-Nitrato (mg/kg)` = "N_nitrato",
-      `Sulfato (mg/kg)` = "S_sulfato",
+      `P Bray actual (ppm)` = "P_Bray_actual",
+      `S-Sulfato (mg/kg)` = "S_sulfato",
+      `Zn - DTPA (ppm)` = "Zn_DTPA",
+      `Boro (ppm)` = "Boro",
       `Nivel P objetivo (ppm)*` = "nivelP_objetivo",
       `Nutriente en grano P (kg/t)*` = "Nutriente_en_grano_P",
       `Nutriente en grano S (kg/t)*` = "Nutriente_en_grano_S",
@@ -1673,7 +1678,7 @@ server <- function(input, output, session) {
     colnames(data) <- tolower(colnames(data))
     data$cultivo <- tolower(data$cultivo)
     data$cultivo_segunda <- tolower(data$cultivo_segunda)
-    
+   
     
     
     data <- data %>%
@@ -1717,7 +1722,8 @@ server <- function(input, output, session) {
         nutriente_en_grano_b = first(nutriente_en_grano_b)
       ) %>%
       ungroup()
-
+    print(data$s_sulfato_20)
+    
     
     # Si falta la columna `Densidad aparente`, crearla con el valor predeterminado
     if (!"densidad_aparente" %in% colnames(data)) {
@@ -1898,7 +1904,7 @@ server <- function(input, output, session) {
           condition = "input.zona_maiz == 'Otras'",
           numericInput("valor_otras_zona", 
                        label = strong("Ingrese el valor del factor de mineralización (kg N/ ppm de Nan)"), 
-                       value = 0, # Valor inicial por defecto
+                       value = 0, 
                        min = 0,
                        step = 0.1)
         )
@@ -1910,7 +1916,7 @@ server <- function(input, output, session) {
                    value = switch(input$cultivo,
                                   "Trigo" = 2.2,
                                   "Papa" = 3.2,
-                                  0), # Valor por defecto para cultivos no especificados
+                                  2.6), # Valor por defecto para cultivos no especificados
                    min = 0,
                    step = 0.1)
     } else {
@@ -4012,6 +4018,7 @@ server <- function(input, output, session) {
         panel.grid.minor = element_blank()
       )
   })
+
   
   #### Múltiples lotes
   
@@ -4024,7 +4031,7 @@ server <- function(input, output, session) {
       datos <- data.frame(
         Lote = c(1, 2), 
         Cultivo = c("maiz", "trigo"),
-        Estadio = c(NA, NA), 
+        # Estadio = c(NA, NA), 
         Indice_vegetacion = c(NA, NA),
         Indice_franja_referencia = c(NA, NA)
       )
@@ -4035,7 +4042,7 @@ server <- function(input, output, session) {
       column_units <- c(
         Lote = "Lote",
         Cultivo = "Cultivo",
-        Estadio = "Estadio",
+        # Estadio = "Estadio",
         Indice_vegetacion = "Índice de vegetación",
         Indice_franja_referencia = "Índice de franja de referencia"
       )
@@ -4063,7 +4070,7 @@ server <- function(input, output, session) {
                                      wrapText = TRUE )
       
       
-      addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:5), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:4), gridExpand = TRUE)
       
       
       
@@ -4093,7 +4100,7 @@ server <- function(input, output, session) {
     
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Estadio", "Índice de vegetación", "Índice de franja de referencia")
+    required_columns <- c("Lote", "Cultivo", "Índice de vegetación", "Índice de franja de referencia")
     missing_columns <- setdiff(required_columns, colnames(data))
     
     if (length(missing_columns) > 0) {
@@ -4109,7 +4116,7 @@ server <- function(input, output, session) {
     column_original <- c(
       Lote = "Lote",
       Cultivo = "Cultivo",
-      `Estadio` = "Estadio" ,
+      # `Estadio` = "Estadio" ,
       `Índice de vegetación` = "Indice_vegetación",
       `Índice de franja de referencia` = "Indice_franja_referencia"
     )
@@ -4119,7 +4126,7 @@ server <- function(input, output, session) {
     
     colnames(data) <- tolower(colnames(data))
     data$cultivo <- tolower(data$cultivo)
-    data$estadio <- tolower(data$estadio)
+    # data$estadio <- tolower(data$estadio)
     
     # Confirmar al usuario que el archivo se ha procesado correctamente
     showNotification("Archivo subido correctamente.", type = "message")
@@ -4137,7 +4144,7 @@ server <- function(input, output, session) {
     
     datos <- datos %>%
       mutate(
-        indice_suf_nitrogeno = round(`indice_vegetación` / `indice_franja_referencia`, 2)
+        indice_suf_nitrogeno = `indice_vegetación` / `indice_franja_referencia`
       ) %>%
       mutate(
         dosis_monitoreo = case_when(
@@ -4145,7 +4152,8 @@ server <- function(input, output, session) {
           cultivo == "trigo" ~ round(509 - 657 * (indice_suf_nitrogeno^3.52), 0),
           cultivo == "papa" ~ round(336 - 346 * (indice_suf_nitrogeno^3.36), 0),
           TRUE ~ NA_real_ # Manejar casos donde el cultivo no coincide
-        )
+        ),
+        indice_suf_nitrogeno = round(indice_suf_nitrogeno, 2)
       )
     
     datos_resultado <- datos %>%
