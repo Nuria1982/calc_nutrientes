@@ -33,8 +33,7 @@ library(glue)
 library(googlesheets4)
 library(gargle)
 library(rhandsontable)
-library(stringi)       
-library(gmailr)
+
 
 # gm_auth_configure(path = "client_secret_553119922184-3741qfnujvvmphnk6bp9jm8q3t61tri8.apps.googleusercontent.com.json")
 # gm_auth()
@@ -692,6 +691,164 @@ ui <- fluidPage(
                             uiOutput("tabla_fosforo"),
                             br(),
                             downloadButton("descarga_P", "Descargar resultados (.xlsx)")
+                        )
+               )
+             )
+    ),
+    
+    tabPanel("Potasio",
+             h4(HTML("Definición dosis de potasio")),
+             
+             tabsetPanel(
+               tabPanel("Lote único",
+                        br(),
+                        fluidRow(
+                          column(6,
+                                 selectInput("cultivoK",
+                                             label = strong("Seleccione el cultivo:"),
+                                             choices = list(
+                                               "Maíz" = "maiz",
+                                               "Soja" = "soja",
+                                               "Trigo/Cebada" = "trigo",
+                                               "Girasol" = "girasol",
+                                               "Papa" = "papa",
+                                               "Doble cultivo" = "doble_cultivo"
+                                             ),
+                                             selected = "maiz"
+                                 ),
+                                 conditionalPanel(
+                                   condition = "input.cultivoK == 'doble_cultivo'",
+                                   fluidRow(
+                                     column(6,
+                                            selectInput(
+                                              "cultivoK_1",
+                                              label = strong("Seleccione el cultivo 1º:"),
+                                              choices = list(
+                                                "Maíz" = "maiz",
+                                                "Soja" = "soja",
+                                                "Trigo/Cebada" = "trigo",
+                                                "Girasol" = "girasol",
+                                                "Papa" = "papa"
+                                              )
+                                            )
+                                     ),
+                                     column(6,
+                                            selectInput(
+                                              "cultivoK_2",
+                                              label = strong("Seleccione el cultivo 2º:"),
+                                              choices = list(
+                                                "Maíz" = "maiz",
+                                                "Soja" = "soja",
+                                                "Trigo/Cebada" = "trigo",
+                                                "Girasol" = "girasol",
+                                                "Papa" = "papa"
+                                              )
+                                            )
+                                     )
+                                   )
+                                 )
+                          )
+                        ),
+                        fluidRow(
+                          column(4, 
+                                 div(style = "background-color: #58815780; padding: 15px; border-radius: 10px;",
+                                     h4(strong("Dosis de suficiencia (kg K / ha)")),
+                                     fluidRow(
+                                       column(12,
+                                              h5(strong("K extractable (P Bray 0 -20 cm)")),
+                                              numericInput("P_Bray_actual",  
+                                                           label = strong(HTML("Ingrese el valor")),
+                                                           value = 1,
+                                                           min = 0
+                                              )
+                                       )
+                                     )
+                                 )
+                          ),
+                          column(8,
+                                 div(style = "background-color: #BC6C2580; padding: 15px; border-radius: 10px;",
+                                     h4(strong("Dosis de construcción y/o mantenimiento")),
+                                     fluidRow(
+                                       column(4,
+                                              h5(strong("Construcción")),
+                                              numericInput("NivelK",  
+                                                           label = strong(HTML("Nivel de K objetivo (ppm)")), 
+                                                           value = 0,
+                                                           min = 0
+                                              ),
+                                              numericInput("factor_construccionK",  
+                                                           label = strong(HTML("Factor de construcción (kg K/ppm)")), 
+                                                           value = 0,
+                                                           min = 0
+                                              ),
+                                              uiOutput("construirK")
+                                       ),
+                                       column(4,
+                                              h5(strong("Mantenimiento")),
+                                              numericInput("rendimientoK",  
+                                                           label = strong(HTML("Rendimiento objetivo (t/ha)")),
+                                                           value = 1,
+                                                           min = 0
+                                              ),
+                                              numericInput("factor_mantenimientoK",  
+                                                           label = strong(HTML("Nutriente en grano (kg K/t)")), 
+                                                           value = 0,
+                                                           step = 0.1,
+                                                           min = 0
+                                              ),
+                                              uiOutput("mantenerK")
+                                       ),
+                                       column(4,
+                                              conditionalPanel(
+                                                condition = "input.cultivoK == 'doble_cultivo_K'",
+                                                h5(strong("Mantenimiento")),
+                                                numericInput("rendimientoK_2",  
+                                                             label = strong(HTML("Rendimiento objetivo del cultivo 2º (t/ha)")),
+                                                             value = 1,
+                                                             min = 0
+                                                ),
+                                                numericInput("factor_mantenimientoK_2",  
+                                                             label = strong(HTML("Nutriente en grano (kg K/t)")), 
+                                                             value = 0,
+                                                             min = 0
+                                                ),
+                                                uiOutput("mantenerK_2")
+                                              )
+                                       )
+                                     )
+                                 )
+                          )
+                        ),
+                        br(),
+                        br(),
+                        
+                        fluidRow(
+                          column(5, offset = 1,
+                                 div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
+                                     div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
+                                         uiOutput("dosis_suficienciak")
+                                     )
+                                 )
+                          ),
+                          column(5, offset = 1,
+                                 div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
+                                     div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
+                                         uiOutput("dosisCyM_k")
+                                     )
+                                 )
+                          )
+                        )
+               ),
+               tabPanel("Múltiples lotes", 
+                        value = "seccion_potasio",
+                        h3(strong("Cálculo de la dosis recomendada de potasio para cada lote")),
+                        
+                        
+                        div(style = "background-color: #DDB89240; padding: 15px; border-radius: 10px;",
+                            
+                            uiOutput("tabla_potasio"),
+                            br(),
+                            downloadButton("descarga_K", "Descargar resultados (.xlsx)")
                         )
                )
              )
@@ -2911,6 +3068,426 @@ server <- function(input, output, session) {
       write_xlsx(resultados_fosforo(), file)  
     }
   )
+  
+  
+  ############################ Potasio #########################################
+  
+  dosis_suficienciaK <- reactive({
+    req(input$cultivoK, input$K_Bray_actual)
+    
+    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+      input$cultivoK_1
+    } else {
+      input$cultivoK
+    }
+    
+    filtro <- dosis_data %>% filter(cultivoK == cultivo_actual)
+    
+    filtro_rango <- filtro %>% filter(input$K_Bray_actual >= P_min & input$K_Bray_actual < P_max)
+    
+    if (nrow(filtro_rango) > 0) {
+      if (cultivo_actual == "papa") {
+        
+        dosis_recomendada <- filtro_rango$min_dosis  
+        return(list(dosis = dosis_recomendada))
+      } else {
+        dosis_min <- min(filtro_rango$min_dosis, na.rm = TRUE)
+        dosis_max <- max(filtro_rango$max_dosis, na.rm = TRUE)
+        return(list(min = dosis_min, max = dosis_max))
+      }
+    } else {
+      
+      if (cultivo_actual == "papa") {
+        return(list(dosis = NA))
+      } else {
+        return(list(min = NA, max = NA))
+      }
+    }
+  })
+  
+  output$dosis_suficienciaK <- renderUI({
+    dosis_vals <- dosis_suficienciaK()
+    
+    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+      input$cultivoK_1
+    } else {
+      input$cultivoK
+    }
+    
+    if (cultivo_actual == "papa") {
+      div(
+        class = "value-box",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
+        div(
+          style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
+          HTML("<strong>Dosis de suficiencia<br>(kg K / ha):</strong>")
+        ),
+        div(
+          style = "display: flex; justify-content: space-between; width: 40%; align-items: center;",
+          div(
+            style = "display: flex; flex-direction: column; align-items: flex-start;",
+            
+            div(
+              style = "font-size: 25px; font-weight: bold; margin-top: 10px;",
+              if (!is.na(dosis_vals$dosis)) {
+                paste(round(dosis_vals$dosis, 0))
+              } else {
+                "No hay dosis disponible"
+              }
+            )
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("droplet")
+          )
+        )
+      )
+    } else {
+      div(
+        class = "value-box",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 5px;",
+        div(
+          style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
+          HTML(paste("<strong>Dosis de suficiencia (kg K / ha):</strong> "
+          ))),
+        
+        div(
+          style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+          
+          div(
+            style = "display: flex; flex-direction: column; align-items: center;",
+            div(
+              style = "font-size: 25px; font-weight: bold;",
+              paste(dosis_vals$min, "-", dosis_vals$max)
+            ),
+            div(
+              style = "font-size: 15px; font-weight: normal; color: #dddddd;",
+              HTML(paste0("(", round(dosis_vals$min * 2.29, 0), " - ", round(dosis_vals$max * 2.29, 0), " kg P<sub>2</sub>O<sub>5</sub>)"))
+            )
+          ),
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("droplet")
+          )
+        )
+      )
+    }
+  })
+  
+  
+  
+  
+  observe({
+    
+    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+      req(input$cultivoK_1)  # Asegurarse de que cultivoP_1 tenga valor
+      input$cultivoK_1
+    } else {
+      input$cultivoK
+    }
+    
+    if (cultivo_actual == "maiz") {
+      updateNumericInput(session, "NivelK", value = 20)
+      updateNumericInput(session, "factor_construccionK", value = 3)
+      updateNumericInput(session, "factor_mantenimientoK", value = 2.6)
+      
+    } else if (cultivo_actual == "soja") {
+      updateNumericInput(session, "NivelK", value = 20)
+      updateNumericInput(session, "factor_construccionK", value = 3)
+      updateNumericInput(session, "factor_mantenimientoK", value = 4.5)
+      
+    } else if (cultivo_actual == "trigo") {
+      updateNumericInput(session, "NivelK", value = 20)
+      updateNumericInput(session, "factor_construccionK", value = 3)
+      updateNumericInput(session, "factor_mantenimientoK", value = 3.2)
+      
+    } else if (cultivo_actual == "girasol") {
+      updateNumericInput(session, "NivelP", value = 20)
+      updateNumericInput(session, "factor_construccionK", value = 3)
+      updateNumericInput(session, "factor_mantenimientoK", value = 4)
+      
+    } else if (cultivo_actual == "papa") {
+      updateNumericInput(session, "NivelK", value = 30)
+      updateNumericInput(session, "factor_construccionK", value = 4)
+      updateNumericInput(session, "factor_mantenimientoK", value = 0.45)}
+  })
+  
+  
+  construirK <- reactive({
+    
+    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+      req(input$cultivoK_1)  
+      input$cultivoK_1
+    } else {
+      input$cultivoK
+    }
+    
+    
+    req(cultivo_actual, input$NivelK, input$factor_construccionK)
+    
+    max(0, (input$NivelK - input$K_Bray_actual)) * input$factor_construccionK
+  })
+  
+  output$construirK <- renderUI({
+    HTML(paste("<strong>Construcción:</strong>", round(construirK(), 0), "kg K / ha"))
+  })
+  
+  
+  mantenerK <- reactive({
+    req(input$rendimientoK, input$factor_mantenimientoK)  
+    
+    input$rendimientoK * input$factor_mantenimientoK
+  })
+  
+  output$mantenerK <- renderUI({
+    HTML(paste("<strong>Mantenimiento:</strong>", round(mantenerK(), 0), "kg KP / ha"))
+  })
+  
+  
+  # cultivo de 2º
+  observeEvent(input$cultivoK_2, {
+    if (input$cultivoK_2 == "maiz") {
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 2.6)
+      
+    } else if (input$cultivoK_2 == "soja") {
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 4.5)
+      
+    } else if (input$cultivoK_2 == "trigo") {
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 3.2)
+      
+    } else if (input$cultivoK_2 == "girasol") {
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 4)
+      
+    } else if (input$cultivoK_2 == "papa") {
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 0.45)
+    }
+  })
+  
+  mantenerK_2 <- reactive({
+    req(input$cultivoK_2, input$rendimientoK_2, input$factor_mantenimientoK_2)  
+    
+    input$rendimientoK_2 * input$factor_mantenimientoK_2
+  })
+  
+  output$mantenerK_2 <- renderUI({
+    HTML(paste("<strong>Mantenimiento:</strong>", round(mantenerK_2(), 0), "kg K / ha"))
+  })
+  
+  dosisCyM_K <- reactive({
+    req(construirK(), mantenerK()) 
+    
+    if (input$cultivoK == "doble_cultivo") {
+      req(mantenerK_2(), input$cultivoK_2)
+      
+      dosisCyM_valor <- construirK() + mantenerK() + mantenerK_2()
+    } else {
+      
+      dosisCyM_valor <- construirK() + mantenerK()
+    }
+    
+    return(dosisCyM_valor)
+  })
+  
+  
+  output$dosisCyM_K <- renderUI({
+    dosis_valor <- dosisCyM_K()  
+    
+    div(
+      class = "value-box",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #BC6C25; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
+      
+      # Título
+      div(
+        style = "font-size: 20px; font-weight: bold; margin-bottom: 6px; text-align: center;",
+        HTML("<strong>Dosis de construcción y mantenimiento<br>(kg K / ha):</strong>")
+      ),
+      div(
+        style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+        
+        div(
+          style = "display: flex; flex-direction: column; align-items: center;",
+          
+          div(
+            style = "font-size: 30px; font-weight: bold;",
+            round(dosis_valor, 0)
+          ),
+          div(
+            style = "font-size: 15px; font-weight: normal; color: #dddddd;",
+            HTML(paste0("(", round(dosis_valor * 2.29, 0), " kg K<sub>2</sub>O<sub>5</sub>)"))
+          )
+        ),
+        
+        div(
+          class = "icon-container",
+          style = "font-size: 40px;",
+          icon("gears")
+        )
+      )
+    )
+  })
+  
+  
+  ### Multi lotes
+  
+  resultados_potasio <- reactive({
+    req(data_usuario())      
+    datos <- data_usuario()    
+    
+    datos <- datos %>%
+      mutate(
+        cultivo = trimws(tolower(cultivo)), 
+        rendimiento_objetivo = as.numeric(rendimiento_objetivo),
+        cultivo_segunda = trimws(tolower(cultivo_segunda)), 
+        rendimiento_objetivo_cultivo_segunda = as.numeric(rendimiento_objetivo_cultivo_segunda),
+        p_bray_actual = as.numeric(p_bray_actual),
+        nivelk_objetivo = as.numeric(nivelk_objetivo),
+        nutriente_en_grano_k = as.numeric(nutriente_en_grano_k)
+      )
+    
+    factores_mantenerK <- c("soja" = 4.5, "trigo" = 3.2, "maiz" = 2.6, "girasol" = 6, "papa" = 0.45)
+    factores_construirK <- c("soja" = 3, "trigo" = 3, "maiz" = 3, "girasol" = 3, "papa" = 4)
+    niveles_k <- c("soja" = 20, "trigo" = 20, "maiz" = 20, "girasol" = 20, "papa" = 30)
+    
+    datos <- datos %>%
+      mutate(
+        factor_mantenerK = ifelse(nutriente_en_grano_k == 0, factores_mantenerK[cultivo], nutriente_en_grano_k),
+        nivel_k = ifelse(nivelk_objetivo == 0, niveles_k[cultivo], nivelk_objetivo)
+      )
+    
+    
+    
+    datos <- datos %>%
+      mutate(
+        filtro_rango = map2(cultivo, k_bray_actual, ~ {
+          if (!is.na(.y)) {
+            result <- dosis_data %>% filter(cultivoK == .x, .y >= P_min, .y < P_max)
+            result
+          } else {
+            NULL
+          }
+        }),
+        dosis_suficiencia_min = if ("k_bray_actual" %in% colnames(datos)) {
+          map_chr(filtro_rango, ~ {
+            if (!is.null(.x) && nrow(.x) > 0) {
+              as.character(min(.x$min_dosis, na.rm = TRUE))  # Convertir a carácter
+            } else {
+              "-"
+            }
+          })
+        } else {
+          "-"
+        },
+        dosis_suficiencia_max = if ("k_bray_actual" %in% colnames(datos)) {
+          map_chr(filtro_rango, ~ {
+            if (!is.null(.x) && nrow(.x) > 0) {
+              as.character(max(.x$max_dosis, na.rm = TRUE))  # Convertir a carácter
+            } else {
+              "-"
+            }
+          })
+        } else {
+          "-"
+        },
+        
+        construir_K = if ("k_bray_actual" %in% colnames(datos)) {
+          if_else(
+            !is.na(k_bray_actual),
+            as.character(round(pmax(0, (nivel_k - k_bray_actual) * factores_construirK[cultivo]), 0)),  # Convertir a carácter
+            "-"
+          )
+        } else {
+          "-"
+        },
+        
+        mantenerK = round(rendimiento_objetivo * factor_mantenerK, 0),
+        
+        mantenerK_segunda = ifelse(
+          !is.na(cultivo_segunda) & cultivo_segunda != "",
+          round(rendimiento_objetivo_cultivo_segunda * factores_mantenerK[cultivo_segunda], 0),
+          0
+        ),
+        mantenerK_total = mantenerK + mantenerK_segunda,
+        
+        dosisCyM_K = if_else(
+          construirK == "-",
+          as.character(mantenerK_total),  
+          as.character(mantenerK_total + as.numeric(construirK))  
+        )
+      ) %>%
+      ungroup()
+    
+    
+    
+    # Seleccionar columnas relevantes
+    datos_resultado <- datos %>%
+      mutate(
+        `Dosis de suficiencia (kg K / ha)` = paste(dosis_suficiencia_min, "-", dosis_suficiencia_max)
+      ) %>%
+      select(
+        lote, cultivo, cultivo_segunda, rendimiento_objetivo, `Dosis de suficiencia (kg K/ ha)`,  
+        construirK,  mantenerK_total, dosisCyM_K
+      ) %>%
+      rename(Lote = lote,
+             Cultivo = cultivo,
+             `Cultivo de segunda` = cultivo_segunda,
+             `Rendimiento (tn/ha)` = rendimiento_objetivo,
+             `Dosis de construcción (kg K / ha)` = construirK,
+             `Dosis de mantenimiento (kg K / ha)` =  mantenerK_total,
+             `Dosis de construcción y mantenimiento (kg K / ha)` = dosisCyM_K
+      )
+    return(datos_resultado)
+    
+  })
+  
+  
+  # Renderiza la tabla con resultados
+  output$tabla_potasio <- renderUI({
+    data <- resultados_potasio()
+    
+    # Crea tabla HTML con estilos específicos para cada columnas
+    tabla_html <- paste0(
+      "<table style='width: 100%; border-collapse: collapse;'>",
+      "<thead><tr>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo antecesor</th>",
+      "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
+      "<th style='background-color: #58815760; padding: 5px;'>Dosis de suficiencia<br>(kg K / ha)</th>",
+      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción<br>(kg K / ha)</th>",
+      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de mantenimiento<br>(kg K / ha)</th>",
+      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción y mantenimiento <br>(kg K / ha)</th>",
+      
+      "</tr></thead>",
+      "<tbody>",
+      
+      paste(
+        apply(data, 1, function(row) {
+          paste0(
+            "<tr>",
+            paste0("<td style='padding: 10px;'>", row, "</td>", collapse = ""),
+            "</tr>"
+          )
+        }),
+        collapse = ""
+      ),
+      "</tbody></table>"
+    )
+    
+    HTML(tabla_html)
+  })
+  
+  output$descarga_K<- downloadHandler(
+    filename = function() {
+      paste("resultados_K_", Sys.Date(), ".xlsx", sep = "")  
+    },
+    content = function(file) {
+      write_xlsx(resultados_potasio(), file)  
+    }
+  )
+  
+  
   
   ############################ Azufre #########################################
   
