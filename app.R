@@ -67,7 +67,7 @@ library(rhandsontable)
 cookie_expiry <- 7
 #
 
-
+########## FOSFORO ##############
 dosis_data <- data.frame(
   cultivoP = c("soja", "soja", "soja", "soja", 
                "trigo", "trigo", "trigo", "trigo", "trigo", "trigo",
@@ -111,6 +111,22 @@ dosis_data <- dosis_data %>%
       TRUE ~ NA_real_  
     )
   )
+
+######## POTASIO #########
+
+tabla_k_suficiencia <- tribble(
+  ~cultivoK,  ~min_ppm, ~max_ppm, ~dosis,
+  "papa",          0,       130,    250,
+  "papa",        131,       180,    180,
+  "papa",        181,       260,    110,
+  "papa",        261,      9999,      0,
+  
+  "otro",          0,       130,    100,
+  "otro",        131,       180,     50,
+  "otro",        181,       260,     25,
+  "otro",        261,      9999,      0
+)
+
 
 ######## EQUIVALENCIAS ###########
 tabla_a <- data.frame(
@@ -353,7 +369,7 @@ ui <- fluidPage(
                         ),
                         fluidRow(
                           column(4, 
-                                 div(style = "background-color: #06A77D80; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #58815780; padding: 15px; border-radius: 10px;",
                                      h3(HTML(("<strong>Datos para el cálculo de la demanda de nitrógeno</strong>"))),
                                      br(),
                                      numericInput("rendimiento",  
@@ -376,7 +392,7 @@ ui <- fluidPage(
                           ),
                           
                           column(8,
-                                 div(style = "background-color: #FF991480; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #3A5A4080; padding: 15px; border-radius: 10px;",
                                      h3(strong("Datos para el cálculo de la oferta de nitrógeno")),
                                      fluidRow(
                                        column(4,
@@ -430,21 +446,21 @@ ui <- fluidPage(
                                      hr(),
                                      fluidRow(
                                        column(4, 
-                                              div(style = "background-color: #FF991490; padding: 10px; border-radius: 10px; text-align: center;",
+                                              div(style = "background-color: #3A5A4090; padding: 10px; border-radius: 10px; text-align: center;",
                                                   h6(HTML("<strong>Nitrógeno Disponible</strong><br><small>(0-60cm, kg N/ha)</small>")),
                                                   div(style = "font-size: 18px; font-weight: bold;",
                                                       uiOutput("nitrogeno_disp"))
                                               )
                                        ),
                                        column(4, 
-                                              div(style = "background-color: #FF991490; padding: 10px; border-radius: 10px; text-align: center;",
+                                              div(style = "background-color: #3A5A4090; padding: 10px; border-radius: 10px; text-align: center;",
                                                   h6(HTML("<strong>Mineralización de N</strong><br><small>(0-20cm, kg N/ha)</small>")),
                                                   div(style = "font-size: 18px; font-weight: bold;",
                                                       uiOutput("nan_total"))
                                               )
                                        ),
                                        column(4, 
-                                              div(style = "background-color: #FF991490; padding: 10px; border-radius: 10px; text-align: center;",
+                                              div(style = "background-color: #3A5A4090; padding: 10px; border-radius: 10px; text-align: center;",
                                                   h6(HTML("<strong>Efecto Antecesor</strong><br><small>(kgN/ha)</small>")),
                                                   div(style = "font-size: 18px; font-weight: bold;",
                                                       uiOutput("efecto_antecesor"))
@@ -594,7 +610,7 @@ ui <- fluidPage(
                         ),
                         fluidRow(
                           column(4, 
-                                 div(style = "background-color: #58815780; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #7F553980; padding: 15px; border-radius: 10px;",
                                      h4(strong("Dosis de suficiencia (kg P / ha)")),
                                      fluidRow(
                                        column(12,
@@ -609,11 +625,11 @@ ui <- fluidPage(
                                  )
                           ),
                           column(8,
-                                 div(style = "background-color: #BC6C2580; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #B0896880; padding: 15px; border-radius: 10px;",
                                      h4(strong("Dosis de construcción y/o mantenimiento")),
                                      fluidRow(
                                        column(4,
-                                              h5(strong("Construcción")),
+                                              h5(strong("Construcción*")),
                                               numericInput("NivelP",  
                                                            label = strong(HTML("Nivel de P objetivo (ppm)")), 
                                                            value = 0,
@@ -624,7 +640,10 @@ ui <- fluidPage(
                                                            value = 0,
                                                            min = 0
                                               ),
-                                              uiOutput("construir_P")
+                                              uiOutput("construir_P"),
+                                              h6(style = "font-size: 0.85em; font-style: italic;",
+                                              "*La dosis de construcción no es necesario aplicarla en un solo año, sino que dependerá 
+                                                 de diferentes factores (relación insumo:producto, logística, cultivo, etc…)")
                                        ),
                                        column(4,
                                               h5(strong("Mantenimiento")),
@@ -751,12 +770,12 @@ ui <- fluidPage(
                         ),
                         fluidRow(
                           column(4, 
-                                 div(style = "background-color: #58815780; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #D08C6080; padding: 15px; border-radius: 10px;",
                                      h4(strong("Dosis de suficiencia (kg K / ha)")),
                                      fluidRow(
                                        column(12,
-                                              h5(strong("K extractable (P Bray 0 -20 cm)")),
-                                              numericInput("P_Bray_actual",  
+                                              h5(strong("K-intercambiable (ppm, 0-20 cm)")),
+                                              numericInput("K_inter",  
                                                            label = strong(HTML("Ingrese el valor")),
                                                            value = 1,
                                                            min = 0
@@ -766,11 +785,11 @@ ui <- fluidPage(
                                  )
                           ),
                           column(8,
-                                 div(style = "background-color: #BC6C2580; padding: 15px; border-radius: 10px;",
+                                 div(style = "background-color: #D9AE9490; padding: 15px; border-radius: 10px;",
                                      h4(strong("Dosis de construcción y/o mantenimiento")),
                                      fluidRow(
                                        column(4,
-                                              h5(strong("Construcción")),
+                                              h5(strong("Construcción*")),
                                               numericInput("NivelK",  
                                                            label = strong(HTML("Nivel de K objetivo (ppm)")), 
                                                            value = 0,
@@ -781,7 +800,10 @@ ui <- fluidPage(
                                                            value = 0,
                                                            min = 0
                                               ),
-                                              uiOutput("construirK")
+                                              uiOutput("construirK"),
+                                              h6(style = "font-size: 0.85em; font-style: italic;",
+                                              "*La dosis de construcción no es necesario aplicarla en un solo año, sino que dependerá 
+                                                 de diferentes factores (relación insumo:producto, logística, cultivo, etc…)")
                                        ),
                                        column(4,
                                               h5(strong("Mantenimiento")),
@@ -800,7 +822,7 @@ ui <- fluidPage(
                                        ),
                                        column(4,
                                               conditionalPanel(
-                                                condition = "input.cultivoK == 'doble_cultivo_K'",
+                                                condition = "input.cultivoK == 'doble_cultivo'",
                                                 h5(strong("Mantenimiento")),
                                                 numericInput("rendimientoK_2",  
                                                              label = strong(HTML("Rendimiento objetivo del cultivo 2º (t/ha)")),
@@ -826,14 +848,14 @@ ui <- fluidPage(
                           column(5, offset = 1,
                                  div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
                                      div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
-                                         uiOutput("dosis_suficienciak")
+                                         uiOutput("dosis_suficienciaK")
                                      )
                                  )
                           ),
                           column(5, offset = 1,
                                  div(style = "display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;",
                                      div(style = "flex: 1; padding-right: 5px; padding-bottom: 10px;", 
-                                         uiOutput("dosisCyM_k")
+                                         uiOutput("dosisCyM_K")
                                      )
                                  )
                           )
@@ -1097,7 +1119,7 @@ ui <- fluidPage(
                                  uiOutput("zona_multi_z"))
                         ),
                         
-                        div(style = "background-color: #457B9D40; padding: 15px; border-radius: 10px;",
+                        div(style = "background-color: #DDB89240; padding: 15px; border-radius: 10px;",
                             
                             uiOutput("tabla_zinc"),
                             br(),
@@ -1617,11 +1639,14 @@ server <- function(input, output, session) {
         Nan = c(NA, NA, NA, NA, NA, NA),
         N_nitrato = c(NA, NA, NA, NA, NA, NA),
         P_Bray_actual = c(NA, NA, NA, NA, NA, NA),
+        K_inter = c(NA, NA, NA, NA, NA, NA),
         S_sulfato = c(NA, NA, NA, NA, NA, NA),
         Zn_DTPA = c(NA, NA, NA, NA, NA, NA),
         Boro = c(NA, NA, NA, NA, NA, NA),
         nivelP_objetivo = c(NA, NA, NA, NA, NA, NA),
+        nivelK_objetivo = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_P = c(NA, NA, NA, NA, NA, NA),
+        Nutriente_en_grano_K = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_S = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_Z = c(NA, NA, NA, NA, NA, NA),
         Nutriente_en_grano_B = c(NA, NA, NA, NA, NA, NA)
@@ -1643,11 +1668,14 @@ server <- function(input, output, session) {
         Nan = "Nan (mg/kg)",
         N_nitrato = "N-Nitrato (mg/kg)",
         P_Bray_actual = "P Bray actual (ppm)",
+        K_inter = "K-intercambiable (ppm)",
         S_sulfato = "S-Sulfato (mg/kg)",
         Zn_DTPA = "Zn - DTPA (ppm)",
         Boro = "Boro (ppm)",
         nivelP_objetivo = "Nivel P objetivo (ppm)*",
+        nivelK_objetivo = "Nivel K objetivo (ppm)*",
         Nutriente_en_grano_P = "Nutriente en grano P (kg/t)*",
+        Nutriente_en_grano_K = "Nutriente en grano K (kg/t)*",
         Nutriente_en_grano_S = "Nutriente en grano S (kg/t)*",
         Nutriente_en_grano_Z = "Nutriente en grano Z (g/t)*",
         Nutriente_en_grano_B = "Nutriente en grano B (g/t)*"
@@ -1708,27 +1736,32 @@ server <- function(input, output, session) {
                                      borderStyle = "thin",
                                      wrapText = TRUE )
       
+      estilo_aclaracion1 <- createStyle(textDecoration = c("bold", "italic"),
+                                        fontColour = "red",
+                                        fontSize = 12)
       estilo_aclaracion2 <- createStyle(textDecoration = c("bold", "italic"),
                                        fontColour = "darkgreen",
                                        fontSize = 12)
       estilo_aclaracion3 <- createStyle(textDecoration = c("bold", "italic"),
                                        fontColour = "orange",
                                        fontSize = 12)
-      estilo_aclaracion1 <- createStyle(textDecoration = c("bold", "italic"),
-                                        fontColour = "red",
-                                        fontSize = 12)
       
       
-      addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:20), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general2, rows = c(2, 5), cols = c(1:20), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8, 11, 13), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8, 11, 13), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9, 10, 12, 14:20), gridExpand = TRUE)
-      addStyle(wb, "Datos", style = estilo_general6, rows = c(1), cols = c(9, 16:20), gridExpand = TRUE)
+      
+      addStyle(wb, "Datos", style = estilo_general1, rows = 1, cols = c(1:23), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general2, rows = c(2, 5), cols = c(1:23), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general5, rows = c(4, 7), cols = c(8, 11, 14), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general4, rows = c(3, 6), cols = c(8, 11, 14), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general3, rows = c(4, 7), cols = c(1:7, 9:10, 12:13, 15:23), gridExpand = TRUE)
+      addStyle(wb, "Datos", style = estilo_general6, rows = c(1), cols = c(9, 17:23), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general7, rows = c(1), cols = c(6), gridExpand = TRUE)
       addStyle(wb, "Datos", style = estilo_general8, rows = c(1), cols = c(7), gridExpand = TRUE)
       
       last_row <- nrow(datos) + 3
+      
+      aclaracion1 <- "* Puede ingresar valores propios o el sistema utilizará valores predeterminados (Ver instructivo para consultar valores)."
+      writeData(wb, "Datos", aclaracion1, startRow = last_row+2, startCol = 1)
+      addStyle(wb, "Datos", style = estilo_aclaracion1, rows = last_row+2, cols = 1, gridExpand = TRUE)
       
       aclaracion2 <- "* Créditos o penalidad de N (kg/ha) según antecesor."
       writeData(wb, "Datos", aclaracion2, startRow = last_row, startCol = 1)
@@ -1738,9 +1771,7 @@ server <- function(input, output, session) {
       writeData(wb, "Datos", aclaracion3, startRow = last_row+1, startCol = 1)
       addStyle(wb, "Datos", style = estilo_aclaracion3, rows = last_row+1, cols = 1, gridExpand = TRUE)
       
-      aclaracion1 <- "* Puede ingresar valores propios o el sistema utilizará valores predeterminados (Ver instructivo para consultar valores)."
-      writeData(wb, "Datos", aclaracion1, startRow = last_row+2, startCol = 1)
-      addStyle(wb, "Datos", style = estilo_aclaracion1, rows = last_row+2, cols = 1, gridExpand = TRUE)
+      
       
       saveWorkbook(wb, file, overwrite = TRUE)
       
@@ -1768,9 +1799,12 @@ server <- function(input, output, session) {
     
     
     # Verificar si el archivo tiene las columnas requeridas
-    required_columns <- c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Cultivo segunda", "Rendimiento cultivo segunda (tn/ha)", "Efecto antecesor (kg/ha)*", "Proteína objetivo (%)*",
-                          "Estrato (cm)", "Densidad aparente (g/cm³)*", "P Bray actual (ppm)", "Zn - DTPA (ppm)", "Boro (ppm)", "Nan (mg/kg)", "N-Nitrato (mg/kg)", "S-Sulfato (mg/kg)","Nivel P objetivo (ppm)*", 
-                          "Nutriente en grano P (kg/t)*", "Nutriente en grano S (kg/t)*", "Nutriente en grano Z (g/t)*", "Nutriente en grano B (g/t)*")
+    required_columns <- c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Cultivo segunda", "Rendimiento cultivo segunda (tn/ha)", 
+                          "Efecto antecesor (kg/ha)*", "Proteína objetivo (%)*", "Estrato (cm)", "Densidad aparente (g/cm³)*", 
+                          "P Bray actual (ppm)", "K-intercambiable (ppm)", "Zn - DTPA (ppm)", "Boro (ppm)", "Nan (mg/kg)", 
+                          "N-Nitrato (mg/kg)", "S-Sulfato (mg/kg)","Nivel P objetivo (ppm)*", "Nivel K objetivo (ppm)*", 
+                          "Nutriente en grano P (kg/t)*", "Nutriente en grano K (kg/t)*", "Nutriente en grano S (kg/t)*", 
+                          "Nutriente en grano Z (g/t)*", "Nutriente en grano B (g/t)*")
     missing_columns <- setdiff(required_columns, colnames(data))
     
     if (length(missing_columns) > 0) {
@@ -1807,8 +1841,8 @@ server <- function(input, output, session) {
     
     # Renombrar las columnas con las unidades correspondientes
     column_original <- c(
-      Lote = "Lote",
-      Cultivo = "Cultivo",
+       Lote = "Lote",
+       Cultivo = "Cultivo",
       `Rendimiento (tn/ha)` = "Rendimiento_objetivo" ,
       `Cultivo segunda` = "Cultivo_segunda",
       `Rendimiento cultivo segunda (tn/ha)` = "Rendimiento_objetivo_cultivo_segunda",
@@ -1819,11 +1853,14 @@ server <- function(input, output, session) {
       `Nan (mg/kg)` = "Nan",
       `N-Nitrato (mg/kg)` = "N_nitrato",
       `P Bray actual (ppm)` = "P_Bray_actual",
+      `K-intercambiable (ppm)` = "K_inter",
       `S-Sulfato (mg/kg)` = "S_sulfato",
       `Zn - DTPA (ppm)` = "Zn_DTPA",
       `Boro (ppm)` = "Boro",
       `Nivel P objetivo (ppm)*` = "nivelP_objetivo",
+      `Nivel K objetivo (ppm)*` = "nivelK_objetivo",
       `Nutriente en grano P (kg/t)*` = "Nutriente_en_grano_P",
+      `Nutriente en grano K (kg/t)*` = "Nutriente_en_grano_K",
       `Nutriente en grano S (kg/t)*` = "Nutriente_en_grano_S",
       `Nutriente en grano Z (g/t)*` = "Nutriente_en_grano_Z",
       `Nutriente en grano B (g/t)*` = "Nutriente_en_grano_B"
@@ -1870,10 +1907,13 @@ server <- function(input, output, session) {
         s_sulfato_40 = max(s_sulfato_40),
         s_sulfato_60 = max(s_sulfato_60),
         p_bray_actual = first(p_bray_actual),
+        k_inter = first(k_inter),
         zn_dtpa = first(zn_dtpa),
         boro = first(boro),
         nivelp_objetivo = first(nivelp_objetivo),
+        nivelk_objetivo = first(nivelk_objetivo),
         nutriente_en_grano_p = first(nutriente_en_grano_p),
+        nutriente_en_grano_k = first(nutriente_en_grano_k),
         nutriente_en_grano_s = first(nutriente_en_grano_s),
         nutriente_en_grano_z = first(nutriente_en_grano_z),
         nutriente_en_grano_b = first(nutriente_en_grano_b)
@@ -1897,7 +1937,7 @@ server <- function(input, output, session) {
     data <- data %>%
       mutate(across(where(is.character), ~ ifelse(is.na(.), "", .)))
     
-    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa", "p_bray_actual", "s_sulfato_20", "boro")
+    excluir_columnas <- c("n_nitrato_20", "n_nitrato_40", "n_nitrato_60", "zn_dtpa", "p_bray_actual", "k_inter", "s_sulfato_20", "boro")
     # Reemplazar valores vacíos (NA) con 0 en todas las columnas
     data <- data %>%
       mutate(across(
@@ -1997,7 +2037,7 @@ server <- function(input, output, session) {
   output$demandaN <- renderUI({
     div(
       class = "value-box",
-      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #06A77D; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #58815790; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
       div(
         style = "font-size: 30px; font-weight: bold;",
         paste(demandaN(), "kg N / ha")
@@ -2162,7 +2202,7 @@ server <- function(input, output, session) {
     
     div(
       class = "value-box",
-      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #FF9914; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #3A5A4080; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
       div(
         style = "font-size: 30px; font-weight: bold;",
         paste(round(valor_oferta, 0), "kg N / ha")
@@ -2382,7 +2422,7 @@ server <- function(input, output, session) {
     
     datos$cultivo <- trimws(datos$cultivo)
     
-    datos$antecesor <- trimws(datos$efecto_antecesor)
+    datos$efecto_antecesor <- as.numeric(datos$efecto_antecesor)
     
     datos <- datos %>%
       mutate(across(
@@ -2399,7 +2439,8 @@ server <- function(input, output, session) {
     } else {
       NA
     }
-
+    
+    
     datos <- datos %>%
       mutate(
         Mineralizacion = case_when(
@@ -2422,6 +2463,11 @@ server <- function(input, output, session) {
           is.na(n_nitrato_20) | is.na(n_nitrato_40) | is.na(n_nitrato_60),
           NA_real_,
           round((n_nitrato_20 + n_nitrato_40 + n_nitrato_60) * 2 * densidad_aparente, 0)
+        ),
+        OfertaN = ifelse(
+          is.na(N_disponible),  
+          NA,  
+          round(coalesce(efecto_antecesor, 0) + coalesce(Nan_total, 0) + N_disponible, 0)  
         )
       ) 
     
@@ -2450,11 +2496,6 @@ server <- function(input, output, session) {
             TRUE ~ 0
           ),
           TRUE ~ 0
-        ),
-        OfertaN = ifelse(
-          is.na(N_disponible),  
-          NA,  
-          round(coalesce(efecto_antecesor, 0) + coalesce(Nan_total, 0) + N_disponible, 0)  
         ),
         DemandaN = rendimiento_objetivo * Requerimiento,
         DosisN = ifelse(
@@ -2512,12 +2553,12 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #06A77D60; padding: 5px;'>Demanda<br>(kg N / ha)</th>",
-      "<th style='background-color: #FF991460; padding: 5px;'>Efecto antecesor<br>(kg N / ha)</th>",
-      "<th style='background-color: #FF991460; padding: 5px;'>N mineralizable<br>(kg N / ha)</th>",
-      "<th style='background-color: #FF991460; padding: 5px;'>Nitrógeno disponible <br>(kg N / ha)</th>",
-      "<th style='background-color: #FF991460; padding: 5px;'>Oferta<br>(kg N / ha)</th>",
-      "<th style='background-color: #C5223360; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
+      "<th style='background-color: #58815760; padding: 5px;'>Demanda<br>(kg N / ha)</th>",
+      "<th style='background-color: #3A5A4060; padding: 5px;'>Efecto antecesor<br>(kg N / ha)</th>",
+      "<th style='background-color: #3A5A4060; padding: 5px;'>N mineralizable<br>(kg N / ha)</th>",
+      "<th style='background-color: #3A5A4060; padding: 5px;'>Nitrógeno disponible <br>(kg N / ha)</th>",
+      "<th style='background-color: #3A5A4060; padding: 5px;'>Oferta<br>(kg N / ha)</th>",
+      "<th style='background-color: #58815760; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
       "</tr></thead>",
       "<tbody>",
       
@@ -2601,9 +2642,9 @@ server <- function(input, output, session) {
     max_dosis <- max(datos_dosis$`Dosis N (kg N / ha)`, na.rm = TRUE)
     
     
-    ggplot(datos_dosis,  aes(x = factor(Titulo, levels = unique(Titulo)), y = `Dosis N (kg N / ha)`, fill = "#C52233", color = "#C52233" )) +
+    ggplot(datos_dosis,  aes(x = factor(Titulo, levels = unique(Titulo)), y = `Dosis N (kg N / ha)`, fill = "#034732", color = "#034732" )) +
       geom_bar(stat = "identity", position = position_dodge(width = 0.5), 
-               width = 0.2, fill = alpha("#C52233", 0.6), color = "#C52233") +
+               width = 0.2, fill = alpha("#034732", 0.6), color = "#034732") +
       geom_text(aes(label = round(`Dosis N (kg N / ha)`, 0)), 
                 position = position_dodge(width = 0.9), 
                 vjust = -0.1, 
@@ -2699,7 +2740,7 @@ server <- function(input, output, session) {
     if (cultivo_actual == "papa") {
       div(
         class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #7F5539; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
         div(
           style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
           HTML("<strong>Dosis de suficiencia<br>(kg P / ha):</strong>")
@@ -2728,7 +2769,7 @@ server <- function(input, output, session) {
     } else {
       div(
         class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 5px;",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #7F5539; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 5px;",
         div(
           style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
           HTML(paste("<strong>Dosis de suficiencia (kg P / ha):</strong> "
@@ -2878,7 +2919,7 @@ server <- function(input, output, session) {
     
     div(
       class = "value-box",
-      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #BC6C25; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #B08968; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
       
       # Título
       div(
@@ -3036,10 +3077,10 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo antecesor</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #58815760; padding: 5px;'>Dosis de suficiencia<br>(kg P / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción<br>(kg P / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de mantenimiento<br>(kg P / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción y mantenimiento <br>(kg P / ha)</th>",
+      "<th style='background-color: #7F553960; padding: 5px;'>Dosis de suficiencia<br>(kg P / ha)</th>",
+      "<th style='background-color: #B0896860; padding: 5px;'>Dosis de construcción<br>(kg P / ha)</th>",
+      "<th style='background-color: #B0896860; padding: 5px;'>Dosis de mantenimiento<br>(kg P / ha)</th>",
+      "<th style='background-color: #B0896860; padding: 5px;'>Dosis de construcción y mantenimiento <br>(kg P / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -3073,107 +3114,94 @@ server <- function(input, output, session) {
   ############################ Potasio #########################################
   
   dosis_suficienciaK <- reactive({
-    req(input$cultivoK, input$K_Bray_actual)
+    req(input$K_inter)
     
-    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
-      input$cultivoK_1
-    } else {
-      input$cultivoK
+    # Función auxiliar para obtener dosis según cultivo
+    obtener_dosis <- function(cultivo) {
+      cultivo_tipo <- if (cultivo == "papa") "papa" else "otro"
+      
+      dosis_val <- tabla_k_suficiencia %>%
+        filter(
+          cultivoK == cultivo_tipo,
+          input$K_inter >= min_ppm,
+          input$K_inter <= max_ppm
+        ) %>%
+        pull(dosis) %>%
+        first()
+      
+      if (is.null(dosis_val)) NA else dosis_val
     }
     
-    filtro <- dosis_data %>% filter(cultivoK == cultivo_actual)
-    
-    filtro_rango <- filtro %>% filter(input$K_Bray_actual >= P_min & input$K_Bray_actual < P_max)
-    
-    if (nrow(filtro_rango) > 0) {
-      if (cultivo_actual == "papa") {
-        
-        dosis_recomendada <- filtro_rango$min_dosis  
-        return(list(dosis = dosis_recomendada))
-      } else {
-        dosis_min <- min(filtro_rango$min_dosis, na.rm = TRUE)
-        dosis_max <- max(filtro_rango$max_dosis, na.rm = TRUE)
-        return(list(min = dosis_min, max = dosis_max))
-      }
+    if (input$cultivoK == "doble_cultivo") {
+      dosis <- obtener_dosis(input$cultivoK_1)
+      return(list(
+        tipo = input$cultivoK_1,
+        dosis = dosis
+      ))
     } else {
-      
-      if (cultivo_actual == "papa") {
-        return(list(dosis = NA))
-      } else {
-        return(list(min = NA, max = NA))
-      }
+      dosis <- obtener_dosis(input$cultivoK)
+      return(list(
+        tipo = input$cultivoK,
+        dosis = dosis
+      ))
     }
   })
   
   output$dosis_suficienciaK <- renderUI({
     dosis_vals <- dosis_suficienciaK()
-    
-    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
-      input$cultivoK_1
-    } else {
-      input$cultivoK
-    }
-    
-    if (cultivo_actual == "papa") {
-      div(
-        class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
+      
+      cultivo_actualK <- if (input$cultivoK == "doble_cultivo") {
+        input$cultivoK_1
+      } else {
+        input$cultivoK
+      }
+      valor <- dosis_vals$dosis
+      
+     
+      if (cultivo_actualK == "papa") {
         div(
-          style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
-          HTML("<strong>Dosis de suficiencia<br>(kg K / ha):</strong>")
-        ),
-        div(
-          style = "display: flex; justify-content: space-between; width: 40%; align-items: center;",
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #D08C60; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
           div(
-            style = "display: flex; flex-direction: column; align-items: flex-start;",
-            
-            div(
-              style = "font-size: 25px; font-weight: bold; margin-top: 10px;",
-              if (!is.na(dosis_vals$dosis)) {
-                paste(round(dosis_vals$dosis, 0))
-              } else {
-                "No hay dosis disponible"
-              }
-            )
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
+            HTML("<strong>Dosis de suficiencia<br>(kg K / ha):</strong>")
           ),
           div(
-            class = "icon-container",
-            style = "font-size: 40px;",
-            icon("droplet")
-          )
-        )
-      )
-    } else {
-      div(
-        class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #588157; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 5px;",
-        div(
-          style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
-          HTML(paste("<strong>Dosis de suficiencia (kg K / ha):</strong> "
-          ))),
-        
-        div(
-          style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
-          
-          div(
-            style = "display: flex; flex-direction: column; align-items: center;",
+            style = "display: flex; justify-content: space-between; width: 40%; align-items: center;",
             div(
               style = "font-size: 25px; font-weight: bold;",
-              paste(dosis_vals$min, "-", dosis_vals$max)
+              valor
             ),
             div(
-              style = "font-size: 15px; font-weight: normal; color: #dddddd;",
-              HTML(paste0("(", round(dosis_vals$min * 2.29, 0), " - ", round(dosis_vals$max * 2.29, 0), " kg P<sub>2</sub>O<sub>5</sub>)"))
+              class = "icon-container",
+              style = "font-size: 40px;",
+              icon("droplet")
             )
-          ),
-          div(
-            class = "icon-container",
-            style = "font-size: 40px;",
-            icon("droplet")
           )
         )
-      )
-    }
+      } else {
+        div(
+          class = "value-box",
+          style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #D08C60; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 5px;",
+          div(
+            style = "font-size: 20px; font-weight: bold; margin-bottom: 5px; text-align: center;",
+            HTML("<strong>Dosis de suficiencia<br>(kg K / ha):</strong>")
+          ),
+          div(
+            style = "display: flex; justify-content: space-between; width: 40%; align-items: center;",
+            div(
+              style = "font-size: 25px; font-weight: bold;",
+              valor
+            ),
+            div(
+              class = "icon-container",
+              style = "font-size: 40px;",
+              icon("droplet")
+            )
+          )
+        )
+      }
+    
   })
   
   
@@ -3181,43 +3209,43 @@ server <- function(input, output, session) {
   
   observe({
     
-    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+    cultivo_actualK <- if (input$cultivoK == "doble_cultivo") {
       req(input$cultivoK_1)  # Asegurarse de que cultivoP_1 tenga valor
       input$cultivoK_1
     } else {
       input$cultivoK
     }
     
-    if (cultivo_actual == "maiz") {
-      updateNumericInput(session, "NivelK", value = 20)
-      updateNumericInput(session, "factor_construccionK", value = 3)
-      updateNumericInput(session, "factor_mantenimientoK", value = 2.6)
+    if (cultivo_actualK == "maiz") {
+      updateNumericInput(session, "NivelK", value = 260)
+      updateNumericInput(session, "factor_construccionK", value = 8)
+      updateNumericInput(session, "factor_mantenimientoK", value = 3)
       
-    } else if (cultivo_actual == "soja") {
-      updateNumericInput(session, "NivelK", value = 20)
-      updateNumericInput(session, "factor_construccionK", value = 3)
-      updateNumericInput(session, "factor_mantenimientoK", value = 4.5)
+    } else if (cultivo_actualK == "soja") {
+      updateNumericInput(session, "NivelK", value = 260)
+      updateNumericInput(session, "factor_construccionK", value = 8)
+      updateNumericInput(session, "factor_mantenimientoK", value = 17)
       
-    } else if (cultivo_actual == "trigo") {
-      updateNumericInput(session, "NivelK", value = 20)
-      updateNumericInput(session, "factor_construccionK", value = 3)
-      updateNumericInput(session, "factor_mantenimientoK", value = 3.2)
+    } else if (cultivo_actualK == "trigo") {
+      updateNumericInput(session, "NivelK", value = 260)
+      updateNumericInput(session, "factor_construccionK", value = 8)
+      updateNumericInput(session, "factor_mantenimientoK", value = 3.5)
       
-    } else if (cultivo_actual == "girasol") {
-      updateNumericInput(session, "NivelP", value = 20)
-      updateNumericInput(session, "factor_construccionK", value = 3)
-      updateNumericInput(session, "factor_mantenimientoK", value = 4)
+    } else if (cultivo_actualK == "girasol") {
+      updateNumericInput(session, "NivelP", value = 260)
+      updateNumericInput(session, "factor_construccionK", value = 8)
+      updateNumericInput(session, "factor_mantenimientoK", value = 5)
       
-    } else if (cultivo_actual == "papa") {
-      updateNumericInput(session, "NivelK", value = 30)
-      updateNumericInput(session, "factor_construccionK", value = 4)
-      updateNumericInput(session, "factor_mantenimientoK", value = 0.45)}
+    } else if (cultivo_actualK == "papa") {
+      updateNumericInput(session, "NivelK", value = 260)
+      updateNumericInput(session, "factor_construccionK", value = 8)
+      updateNumericInput(session, "factor_mantenimientoK", value = 5)}
   })
   
   
   construirK <- reactive({
     
-    cultivo_actual <- if (input$cultivoK == "doble_cultivo") {
+    cultivo_actualK <- if (input$cultivoK == "doble_cultivo") {
       req(input$cultivoK_1)  
       input$cultivoK_1
     } else {
@@ -3225,9 +3253,9 @@ server <- function(input, output, session) {
     }
     
     
-    req(cultivo_actual, input$NivelK, input$factor_construccionK)
+    req(cultivo_actualK, input$NivelK, input$factor_construccionK)
     
-    max(0, (input$NivelK - input$K_Bray_actual)) * input$factor_construccionK
+    max(0, (input$NivelK - input$K_inter)) * input$factor_construccionK
   })
   
   output$construirK <- renderUI({
@@ -3249,19 +3277,19 @@ server <- function(input, output, session) {
   # cultivo de 2º
   observeEvent(input$cultivoK_2, {
     if (input$cultivoK_2 == "maiz") {
-      updateNumericInput(session, "factor_mantenimientoK_2", value = 2.6)
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 3)
       
     } else if (input$cultivoK_2 == "soja") {
-      updateNumericInput(session, "factor_mantenimientoK_2", value = 4.5)
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 17)
       
     } else if (input$cultivoK_2 == "trigo") {
-      updateNumericInput(session, "factor_mantenimientoK_2", value = 3.2)
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 3.5)
       
     } else if (input$cultivoK_2 == "girasol") {
-      updateNumericInput(session, "factor_mantenimientoK_2", value = 4)
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 5)
       
     } else if (input$cultivoK_2 == "papa") {
-      updateNumericInput(session, "factor_mantenimientoK_2", value = 0.45)
+      updateNumericInput(session, "factor_mantenimientoK_2", value = 5)
     }
   })
   
@@ -3296,7 +3324,7 @@ server <- function(input, output, session) {
     
     div(
       class = "value-box",
-      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #BC6C25; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
+      style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #D9AE94; color: white; border-radius: 10px; height: 180px; width: 300px; padding: 10px;",
       
       # Título
       div(
@@ -3341,17 +3369,18 @@ server <- function(input, output, session) {
         rendimiento_objetivo = as.numeric(rendimiento_objetivo),
         cultivo_segunda = trimws(tolower(cultivo_segunda)), 
         rendimiento_objetivo_cultivo_segunda = as.numeric(rendimiento_objetivo_cultivo_segunda),
-        p_bray_actual = as.numeric(p_bray_actual),
+        k_inter = as.numeric(k_inter),
         nivelk_objetivo = as.numeric(nivelk_objetivo),
         nutriente_en_grano_k = as.numeric(nutriente_en_grano_k)
       )
     
-    factores_mantenerK <- c("soja" = 4.5, "trigo" = 3.2, "maiz" = 2.6, "girasol" = 6, "papa" = 0.45)
-    factores_construirK <- c("soja" = 3, "trigo" = 3, "maiz" = 3, "girasol" = 3, "papa" = 4)
-    niveles_k <- c("soja" = 20, "trigo" = 20, "maiz" = 20, "girasol" = 20, "papa" = 30)
+    factores_mantenerK <- c("soja" = 17, "trigo" = 3.5, "maiz" = 3, "girasol" = 5, "papa" = 5)
+    factores_construirK <- c("soja" = 8, "trigo" = 8, "maiz" = 8, "girasol" = 8, "papa" = 8)
+    niveles_k <- c("soja" = 260, "trigo" = 260, "maiz" = 260, "girasol" = 260, "papa" = 260)
     
     datos <- datos %>%
       mutate(
+        cultivok = ifelse(cultivo == "papa", "papa", "otro"),
         factor_mantenerK = ifelse(nutriente_en_grano_k == 0, factores_mantenerK[cultivo], nutriente_en_grano_k),
         nivel_k = ifelse(nivelk_objetivo == 0, niveles_k[cultivo], nivelk_objetivo)
       )
@@ -3359,42 +3388,29 @@ server <- function(input, output, session) {
     
     
     datos <- datos %>%
+      rowwise() %>%
       mutate(
-        filtro_rango = map2(cultivo, k_bray_actual, ~ {
-          if (!is.na(.y)) {
-            result <- dosis_data %>% filter(cultivoK == .x, .y >= P_min, .y < P_max)
-            result
-          } else {
-            NULL
-          }
-        }),
-        dosis_suficiencia_min = if ("k_bray_actual" %in% colnames(datos)) {
-          map_chr(filtro_rango, ~ {
-            if (!is.null(.x) && nrow(.x) > 0) {
-              as.character(min(.x$min_dosis, na.rm = TRUE))  # Convertir a carácter
-            } else {
-              "-"
-            }
-          })
-        } else {
-          "-"
-        },
-        dosis_suficiencia_max = if ("k_bray_actual" %in% colnames(datos)) {
-          map_chr(filtro_rango, ~ {
-            if (!is.null(.x) && nrow(.x) > 0) {
-              as.character(max(.x$max_dosis, na.rm = TRUE))  # Convertir a carácter
-            } else {
-              "-"
-            }
-          })
-        } else {
-          "-"
-        },
-        
-        construir_K = if ("k_bray_actual" %in% colnames(datos)) {
+        dosis_suficienciak = {
+          dosis_val <- tabla_k_suficiencia %>%
+            filter(
+              cultivoK == cultivok,
+              k_inter >= min_ppm,
+              k_inter <= max_ppm
+            ) %>%
+            pull(dosis) %>%
+            first()
+          
+          if (is.null(dosis_val) || is.na(dosis_val)) "-" else as.character(dosis_val)
+        }
+      ) %>%
+      ungroup()
+    
+    datos <- datos %>%
+      mutate(
+        construirK = if ("k_inter" %in% colnames(datos)) {
           if_else(
-            !is.na(k_bray_actual),
-            as.character(round(pmax(0, (nivel_k - k_bray_actual) * factores_construirK[cultivo]), 0)),  # Convertir a carácter
+            !is.na(k_inter),
+            as.character(round(pmax(0, (nivel_k - k_inter) * factores_construirK[cultivo]), 0)),  
             "-"
           )
         } else {
@@ -3410,10 +3426,10 @@ server <- function(input, output, session) {
         ),
         mantenerK_total = mantenerK + mantenerK_segunda,
         
-        dosisCyM_K = if_else(
-          construirK == "-",
-          as.character(mantenerK_total),  
-          as.character(mantenerK_total + as.numeric(construirK))  
+        dosisCyMK = if_else(
+          is.na(suppressWarnings(as.numeric(construirK))),
+          as.character(mantenerK_total),
+          as.character(mantenerK_total + suppressWarnings(as.numeric(construirK))) 
         )
       ) %>%
       ungroup()
@@ -3422,20 +3438,18 @@ server <- function(input, output, session) {
     
     # Seleccionar columnas relevantes
     datos_resultado <- datos %>%
-      mutate(
-        `Dosis de suficiencia (kg K / ha)` = paste(dosis_suficiencia_min, "-", dosis_suficiencia_max)
-      ) %>%
       select(
-        lote, cultivo, cultivo_segunda, rendimiento_objetivo, `Dosis de suficiencia (kg K/ ha)`,  
-        construirK,  mantenerK_total, dosisCyM_K
+        lote, cultivo, cultivo_segunda, rendimiento_objetivo, dosis_suficienciak,  
+        construirK,  mantenerK_total, dosisCyMK
       ) %>%
       rename(Lote = lote,
              Cultivo = cultivo,
              `Cultivo de segunda` = cultivo_segunda,
              `Rendimiento (tn/ha)` = rendimiento_objetivo,
+             `Dosis de suficiencia (kg K / ha)` = dosis_suficienciak,
              `Dosis de construcción (kg K / ha)` = construirK,
              `Dosis de mantenimiento (kg K / ha)` =  mantenerK_total,
-             `Dosis de construcción y mantenimiento (kg K / ha)` = dosisCyM_K
+             `Dosis de construcción y mantenimiento (kg K / ha)` = dosisCyMK
       )
     return(datos_resultado)
     
@@ -3454,10 +3468,10 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo antecesor</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #58815760; padding: 5px;'>Dosis de suficiencia<br>(kg K / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción<br>(kg K / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de mantenimiento<br>(kg K / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construcción y mantenimiento <br>(kg K / ha)</th>",
+      "<th style='background-color: #D08C6060; padding: 5px;'>Dosis de suficiencia<br>(kg K / ha)</th>",
+      "<th style='background-color: #D9AE9460; padding: 5px;'>Dosis de construcción<br>(kg K / ha)</th>",
+      "<th style='background-color: #D9AE9460; padding: 5px;'>Dosis de mantenimiento<br>(kg K / ha)</th>",
+      "<th style='background-color: #D9AE9460; padding: 5px;'>Dosis de construcción y mantenimiento <br>(kg K / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -3827,7 +3841,7 @@ server <- function(input, output, session) {
     } else {
       div(
         class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #415A77; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #168AAD; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
         div(
           style = "font-size: 30px; font-weight: bold; margin-bottom: 6px; text-align: center;",
           HTML("<strong>No se recomienda fertilizar con zinc</strong>")
@@ -3981,9 +3995,9 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
+      "<th style='background-color: #1A759F60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
+      "<th style='background-color: #1E609160; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
+      "<th style='background-color: #184E7760; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -4118,7 +4132,7 @@ server <- function(input, output, session) {
     } else {
       div(
         class = "value-box",
-        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #415A77; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
+        style = "display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #778DA9; color: white; border-radius: 10px; height: 160px; width: 300px; padding: 10px;",
         div(
           style = "font-size: 30px; font-weight: bold; margin-bottom: 6px; text-align: center;",
           HTML("<strong>No se recomienda fertilizar con boro</strong>")
@@ -4251,8 +4265,8 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
+      "<th style='background-color: #84A9C060; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
+      "<th style='background-color: #415A7760; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
       
       "</tr></thead>",
       "<tbody>",
@@ -4327,29 +4341,33 @@ server <- function(input, output, session) {
     
     nitrogeno <- resultados_nitrogeno()
     fosforo <- resultados_fosforo()
+    potasio <- resultados_potasio()
     azufre <- resultados_azufre()
     zinc <- resultados_zinc()
     boro <- resultados_boro()
     
     # Verifica si los datos existen
-    if (is.null(nitrogeno) | is.null(fosforo) | is.null(azufre) | is.null(zinc) | is.null(boro)) {
+    if (is.null(nitrogeno) | is.null(fosforo) | is.null(potasio) | is.null(azufre) | is.null(zinc) | is.null(boro)) {
       return(NULL)  
     }
     
     nitrogeno_seleccionada <- nitrogeno[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis N (kg N / ha)")]
     fosforo_seleccionada <- fosforo[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis de suficiencia (kg P / ha)", "Dosis de construcción y mantenimiento (kg P / ha)")]
+    potasio_seleccionada <- potasio[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis de suficiencia (kg K / ha)", "Dosis de construcción y mantenimiento (kg K / ha)")]
     azufre_seleccionada <- azufre[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis S (kg S / ha)")]
     zinc_seleccionada <- zinc[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis a la semilla", "Dosis foliar", "Dosis al suelo")]
     boro_seleccionada <- boro[, c("Lote", "Cultivo", "Rendimiento (tn/ha)", "Dosis foliar", "Dosis al suelo")]
     
     
     fosforo_seleccionada <- fosforo_seleccionada[, !colnames(fosforo_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
+    potasio_seleccionada <- potasio_seleccionada[, !colnames(potasio_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
     azufre_seleccionada <- azufre_seleccionada[, !colnames(azufre_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
     zinc_seleccionada <- zinc_seleccionada[, !colnames(zinc_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
     boro_seleccionada <- boro_seleccionada[, !colnames(boro_seleccionada) %in% c("Cultivo", "Rendimiento (tn/ha)")]
     
     tabla_general <- nitrogeno_seleccionada %>%
       left_join(fosforo_seleccionada, by = "Lote") %>%
+      left_join(potasio_seleccionada, by = "Lote") %>%
       left_join(azufre_seleccionada, by = "Lote") %>%
       left_join(zinc_seleccionada, by = "Lote") %>%
       left_join(boro_seleccionada, by = "Lote")
@@ -4374,16 +4392,18 @@ server <- function(input, output, session) {
       "<th style='background-color: #CCCCCC; padding: 5px;'>Lote</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Cultivo</th>",
       "<th style='background-color: #CCCCCC; padding: 5px;'>Rendimiento<br>(tn / ha)</th>",
-      "<th style='background-color: #C5223360; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
-      "<th style='background-color: #58815760; padding: 5px;'>Dosis de suficiencia<br>(kg P / ha)</th>",
-      "<th style='background-color: #BC6C2560; padding: 5px;'>Dosis de construccion y mantenimiento<br>(kg P / ha)</th>",
+      "<th style='background-color: #03473260; padding: 5px;'>Dosis óptima agronómica<br>(kg N / ha)</th>",
+      "<th style='background-color: #7F553960; padding: 5px;'>Dosis de suficiencia<br>(kg P / ha)</th>",
+      "<th style='background-color: #B0896960; padding: 5px;'>Dosis de construcción y mantenimiento<br>(kg P / ha)</th>",
+      "<th style='background-color: #D08C6080; padding: 5px;'>Dosis de suficiencia<br>(kg K / ha)</th>",
+      "<th style='background-color: #D9AE9480; padding: 5px;'>Dosis de construcción y mantenimiento<br>(kg K / ha)</th>",
       "<th style='background-color: #DEB84160; padding: 5px;'>Dosis de azufre <br>(kg S / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
-      "<th style='background-color: #168AAD60; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
-      "<th style='background-color: #778DA960; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
-      
+      "<th style='background-color: #1A759F60; padding: 5px;'>Dosis a la semilla<br>(g Zn / ha)</th>",
+      "<th style='background-color: #1E609160; padding: 5px;'>Dosis foliar<br>(g Zn / ha)</th>",
+      "<th style='background-color: #184E7760; padding: 5px;'>Dosis al suelo<br>(kg Zn / ha)</th>",
+      "<th style='background-color: #84A9C060; padding: 5px;'>Dosis foliar<br>(g B / ha)</th>",
+      "<th style='background-color: #415A7760; padding: 5px;'>Dosis al suelo<br>(kg B / ha)</th>",
+
       "</tr></thead>",
       "<tbody>",
       
