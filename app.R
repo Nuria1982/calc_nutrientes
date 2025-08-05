@@ -1919,7 +1919,7 @@ server <- function(input, output, session) {
         nutriente_en_grano_b = first(nutriente_en_grano_b)
       ) %>%
       ungroup()
-    print(data$s_sulfato_20)
+    
     
     
     # Si falta la columna `Densidad aparente`, crearla con el valor predeterminado
@@ -3188,20 +3188,30 @@ server <- function(input, output, session) {
             HTML("<strong>Dosis de suficiencia<br>(kg K / ha):</strong>")
           ),
           div(
-            style = "display: flex; justify-content: space-between; width: 40%; align-items: center;",
+            style = "display: flex; justify-content: space-between; width: 60%; align-items: center;",
+            
             div(
-              style = "font-size: 25px; font-weight: bold;",
-              valor
+              style = "display: flex; flex-direction: column; align-items: center;",
+              
+              div(
+                style = "font-size: 30px; font-weight: bold;",
+                round(valor, 0)
+              ),
+              div(
+                style = "font-size: 15px; font-weight: normal; color: #dddddd;",
+                HTML(paste0("(", round(valor * 1.2, 0), " kg K<sub>2</sub>O)"))
+              )
             ),
-            div(
-              class = "icon-container",
-              style = "font-size: 40px;",
-              icon("droplet")
-            )
+            
+          div(
+            class = "icon-container",
+            style = "font-size: 40px;",
+            icon("droplet")
+          )
           )
         )
       }
-    
+      
   })
   
   
@@ -3270,7 +3280,7 @@ server <- function(input, output, session) {
   })
   
   output$mantenerK <- renderUI({
-    HTML(paste("<strong>Mantenimiento:</strong>", round(mantenerK(), 0), "kg KP / ha"))
+    HTML(paste("<strong>Mantenimiento:</strong>", round(mantenerK(), 0), "kg K / ha"))
   })
   
   
@@ -3343,7 +3353,7 @@ server <- function(input, output, session) {
           ),
           div(
             style = "font-size: 15px; font-weight: normal; color: #dddddd;",
-            HTML(paste0("(", round(dosis_valor * 2.29, 0), " kg K<sub>2</sub>O<sub>5</sub>)"))
+            HTML(paste0("(", round(dosis_valor * 1.2, 0), " kg K<sub>2</sub>O)"))
           )
         ),
         
