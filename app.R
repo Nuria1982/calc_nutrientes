@@ -189,6 +189,13 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
     tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"),
+    tags$script(async = NA, src = "https://www.googletagmanager.com/gtag/js?id=G-GL7T3H2JHS"),
+    tags$script(HTML("
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PD7HPEYVW6');
+  ")),
     tags$style(HTML("
     
     
@@ -3808,17 +3815,9 @@ server <- function(input, output, session) {
   })
   
   output$dosis_z <- renderUI({
-    req(input$zinc)
+    req(input$cultivoZ, input$rendimiento_z, input$factor_z)
     
-    limite_superior <- if (tolower(input$cultivoZ) == "papa") 2 else 1.2
-    
-    dosis_valor <- if (input$zinc >= 0 && input$zinc < 0.5) {
-      dosis_z() * 1.3
-    } else if (input$zinc >= 0.5 && input$zinc < limite_superior) {
-      dosis_z()
-    } else {
-      NULL
-    }
+    dosis_valor <- dosis_z()
     
     # Renderizamos la UI dependiendo de las condiciones
     if (!is.null(dosis_valor)) {
@@ -4077,7 +4076,7 @@ server <- function(input, output, session) {
   ############################ Boro #########################################
   
   observeEvent(input$cultivoB, {  
-    req(input$cultivoZ)  
+    req(input$cultivoB)  
     
     if (input$cultivoB == "maiz") {
       updateNumericInput(session, "factor_B", value = 46)
@@ -4105,17 +4104,9 @@ server <- function(input, output, session) {
   })
   
   output$dosis_B <- renderUI({
-    req(input$boro)
+    req(input$cultivoB, input$rendimiento_B, input$factor_B)
     
-    limite_superior <- if (tolower(input$cultivoB) == "soja") 0.61 else 0.66
-    
-    dosis_valor_B <- if (input$boro >= 0 && input$boro < 0.5) {
-      dosis_B() * 1.3
-    } else if (input$boro >= 0.5 && input$boro < limite_superior) {
-      dosis_B()
-    } else {
-      NULL
-    }
+    dosis_valor_B <- dosis_B()
     
     # Renderizamos la UI dependiendo de las condiciones
     if (!is.null(dosis_valor_B)) {
